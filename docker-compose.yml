@@ -1,0 +1,191 @@
+name: merkador # This locks the prefix for all services, making it easier to identify them in Docker commands and ensuring consistent naming across environments.
+
+services:
+
+  traefik:
+    image: traefik:v3.6.2
+    container_name: traefik
+    command:
+      - "--api.insecure=true"              # Dev dashboard enabled on :8080
+      - "--providers.docker=true"          # Detect Docker containers automatically
+      - "--entrypoints.web.address=:80"    # Single HTTP entrypoint
+   
+      # JWT plugin (free community version)
+      - "--experimental.plugins.jwt.moduleName=github.com/traefik-plugins/traefik-jwt-plugin"
+      - "--experimental.plugins.jwt.version=v0.7.1"
+    ports:
+      - "80:80"                            # Access APIs via Traefik
+      - "8080:8080"                        # Dev dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+       # 1) Middleware to strip /api prefix
+      - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
+
+      # Basic Auth
+      #- traefik.http.middlewares.basic-auth.basicauth.users: user:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/ # request header example: Authorization: Basic dXNlcjpwYXNzd29yZA==
+
+      # 2) Middleware: JWT auth
+      - "traefik.http.middlewares.jwt-auth.plugin.jwt.secret=${JWT_SECRET}"
+      - "traefik.http.middlewares.jwt-auth.plugin.jwt.signingMethod=HS256"
+      - "traefik.http.middlewares.jwt-auth.plugin.jwt.authHeader=Authorization"
+      - "traefik.http.middlewares.jwt-auth.plugin.jwt.authScheme=Bearer"
+
+      # 3) Middleware: CORS for frontend dev server
+      - "traefik.http.middlewares.cors-frontend.headers.accesscontrolalloworiginlist=http://localhost:5173"
+      - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowheaders=Authorization,Content-Type"
+      - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowcredentials=true"
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "6672:5672"   
+      - "16672:15672" # Management Dashboard
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - docker_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend-app:
+    build: 
+      context: ./frontend_app
+    container_name: frontend-app
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true" # <--- DISABLING/ENABLING THIS CONTAINER FOR LOCAL/CONTAINERIZED FRONTEND | SET TO 'true' FOR PRODUCTION
+      
+      # Catch all root path requests (/) except /api and route to frontend
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`) && !PathPrefix(`/api`)"
+      - "traefik.http.routers.frontend.service=frontend-service"
+      - "traefik.http.routers.frontend.entrypoints=web" 
+      - "traefik.http.services.frontend-service.loadbalancer.server.port=80" # Nginx default port  
+  
+  user-ms:
+    build: ./User_Management_MS
+    container_name: user-ms
+    ports:
+      - "8082:8082" # Optional for direct testing
+    environment:
+      - DB_IP=${USER_DB_IP}
+      - DB_PORT=${USER_DB_PORT}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_DBNAME=${USER_DB}
+      - BROKER_HOST=${BROKER_HOST}
+      - BROKER_PORT=${BROKER_PORT}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      user-db:
+        condition: service_started
+      credential-ms:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # --- Public routes (no JWT) ---
+      - "traefik.http.routers.user-create.rule=PathPrefix(`/api/users/add`)"
+      - "traefik.http.routers.user-create.service=user"
+      - "traefik.http.routers.user-create.middlewares=strip-api, cors-frontend" # when production-ready, remove cors-frontend middleware
+      - "traefik.http.routers.user-create.entrypoints=web"
+
+      # --- Protected routes (JWT required) ---
+      - "traefik.http.routers.user-secure.rule=PathPrefix(`/api/users`)"
+      - "traefik.http.routers.user-secure.service=user"
+      - "traefik.http.routers.user-secure.middlewares=strip-api, cors-frontend, jwt-auth" # jwt-auth/basic_auth 
+      - "traefik.http.routers.user-secure.entrypoints=web"
+
+
+      - "traefik.http.services.user.loadbalancer.server.port=8082"
+
+  credential-ms:
+    build: ./Credential_Management_MS
+    container_name: credential-ms
+    ports:
+      - "8081:8081"
+    environment:
+      - DB_IP=${CREDENTIAL_DB_IP}
+      - DB_PORT=${CREDENTIAL_DB_PORT}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_DBNAME=${CREDENTIAL_DB}
+      - BROKER_HOST=${BROKER_HOST}
+      - BROKER_PORT=${BROKER_PORT}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      rabbitmq:
+          condition: service_healthy
+      credential-db:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+    - "traefik.enable=true"
+
+    # --- Public routes (no JWT) ---
+    - "traefik.http.routers.credential-login.rule=PathPrefix(`/api/credentials/login`)"
+    - "traefik.http.routers.credential-login.service=credential"
+    - "traefik.http.routers.credential-login.middlewares=strip-api, cors-frontend"
+    - "traefik.http.routers.credential-login.entrypoints=web"
+
+    # --- Protected routes (JWT required) ---
+    - "traefik.http.routers.credential-secure.rule=PathPrefix(`/api/credentials`)"
+    - "traefik.http.routers.credential-secure.service=credential"
+    - "traefik.http.routers.credential-secure.middlewares=strip-api, cors-frontend, jwt-auth"
+    - "traefik.http.routers.credential-secure.entrypoints=web"
+
+    - "traefik.http.services.credential.loadbalancer.server.port=8081"
+
+  # --- Databases ---
+  user-db:
+    image: postgres:16
+    container_name: user-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${USER_DB}
+    ports:
+      - "6001:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
+
+  credential-db:
+    image: postgres:16
+    container_name: credential-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${CREDENTIAL_DB}
+    ports:
+      - "6002:5432"
+    volumes:
+      - credential_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
+  
+volumes:
+  user_db_data:
+  credential_db_data:
+
+networks:
+  docker_network:
+    driver: bridge

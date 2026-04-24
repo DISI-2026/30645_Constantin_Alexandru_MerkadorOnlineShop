@@ -1,0 +1,21 @@
+# Helper files
+api_doc.txt
+json_example.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OS generated files
+*.swp
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDEs / editors
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws

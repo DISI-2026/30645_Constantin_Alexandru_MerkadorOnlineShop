@@ -1,0 +1,123 @@
+/* src/styles/ClientPage.css */
+
+.client-page-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-section {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #ddd;
+}
+
+.header-title {
+    font-size: 2.5rem;
+    color: #34495e;
+    margin-bottom: 0.5rem;
+}
+
+/* 2. Devices Grid (Responsive Flex/Grid Layout) */
+.devices-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.device-card {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 300px; /* Base width */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s;
+}
+
+.device-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.device-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.device-info {
+    padding: 15px;
+}
+
+.device-name {
+    font-size: 1.4rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.device-info p {
+    font-size: 0.95rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.device-info strong {
+    color: #333;
+}
+
+.date-assigned {
+    font-size: 1.4rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+/* 3. Footer Actions */
+.footer-actions {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.action-link, .action-button {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.action-link {
+    background-color: #2ecc71; /* Green */
+    color: white;
+}
+
+.action-link:hover {
+    background-color: #27ae60;
+}
+
+.logout-button {
+    background-color: #e74c3c; /* Red */
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    background-color: #c0392b;
+}
