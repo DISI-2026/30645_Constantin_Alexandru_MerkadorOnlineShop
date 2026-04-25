@@ -57,6 +57,14 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-cart:
+    image: redis:7
+    container_name: redis-cart
+    ports:
+      - "6379:6379"
+    networks:
+      - docker_network
+
   frontend-app:
     build: 
       context: ./frontend_app
@@ -181,10 +189,25 @@ services:
       - credential_db_data:/var/lib/postgresql/data
     networks:
       - docker_network
+      
+  order-db:
+    image: postgres:16
+    container_name: order-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${ORDER_DB}
+    ports:
+      - "6003:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
   
 volumes:
   user_db_data:
   credential_db_data:
+  order_db_data:
 
 networks:
   docker_network:

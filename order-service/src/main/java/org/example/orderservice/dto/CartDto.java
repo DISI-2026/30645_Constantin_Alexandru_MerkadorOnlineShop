@@ -6,14 +6,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderLineDto {
-    private String productId;
-    private String productTitle;
-    private BigDecimal unitPrice;
-    private Integer quantity;
+public class CartDto {
+    private UUID userId;
+    private List<CartItemDto> items = new ArrayList<>();
+    private BigDecimal total;
 }
