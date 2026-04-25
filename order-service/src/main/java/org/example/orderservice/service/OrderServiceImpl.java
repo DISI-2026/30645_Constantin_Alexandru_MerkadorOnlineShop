@@ -3,9 +3,12 @@ package org.example.orderservice.service;
 import lombok.RequiredArgsConstructor;
 import org.example.orderservice.dto.OrderRequestDto;
 import org.example.orderservice.dto.OrderResponseDto;
+import org.example.orderservice.dto.event.OrderPlacedEvent;
+import org.example.orderservice.dto.event.OrderStatusChangedEvent;
 import org.example.orderservice.infrastructure.entity.Order;
 import org.example.orderservice.infrastructure.entity.OrderLine;
 import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
+import org.example.orderservice.infrastructure.messaging.OrderEventPublisher;
 import org.example.orderservice.infrastructure.repository.OrderRepository;
 import org.example.orderservice.mapper.OrderMapper;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderEventPublisher orderEventPublisher;
 
     @Override
     @Transactional
@@ -59,7 +63,29 @@ public class OrderServiceImpl implements OrderService {
         order.setStatusHistory(List.of(initialStatus));
 
         Order savedOrder = orderRepository.save(order);
+
+        publishOrderPlacedEvent(savedOrder);
+
         return OrderMapper.toDto(savedOrder);
+    }
+
+    private void publishOrderPlacedEvent(Order order) {
+        List<OrderPlacedEvent.OrderItem> eventItems = order.getOrderLines().stream()
+                .map(line -> OrderPlacedEvent.OrderItem.builder()
+                        .productId(line.getProductId())
+                        .quantity(line.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+
+        OrderPlacedEvent event = OrderPlacedEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .totalAmount(order.getTotalAmount())
+                .placedAt(order.getPlacedAt())
+                .items(eventItems)
+                .build();
+
+        orderEventPublisher.publishOrderPlacedEvent(event);
     }
 
     @Override
@@ -84,9 +110,11 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
+        String oldStatus = order.getStatus();
+
         OrderStatusHistory statusUpdate = new OrderStatusHistory();
         statusUpdate.setOrder(order);
-        statusUpdate.setFromStatus(order.getStatus());
+        statusUpdate.setFromStatus(oldStatus);
         statusUpdate.setToStatus(newStatus);
         statusUpdate.setChangedAt(LocalDateTime.now());
 
@@ -94,6 +122,16 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
 
         Order updatedOrder = orderRepository.save(order);
+
+        OrderStatusChangedEvent event = OrderStatusChangedEvent.builder()
+                .orderId(updatedOrder.getId())
+                .customerId(updatedOrder.getCustomerId())
+                .oldStatus(oldStatus)
+                .newStatus(updatedOrder.getStatus())
+                .changedAt(statusUpdate.getChangedAt())
+                .build();
+        orderEventPublisher.publishOrderStatusChangedEvent(event);
+
         return OrderMapper.toDto(updatedOrder);
     }
 }
