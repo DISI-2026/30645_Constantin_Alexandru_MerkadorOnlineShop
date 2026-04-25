@@ -57,6 +57,14 @@ services:
       timeout: 5s
       retries: 5
 
+  redis-cart:
+    image: redis:7
+    container_name: redis-cart
+    ports:
+      - "6379:6379"
+    networks:
+      - docker_network
+
   frontend-app:
     build: 
       context: ./frontend_app
@@ -153,6 +161,40 @@ services:
 
     - "traefik.http.services.credential.loadbalancer.server.port=8081"
 
+  order-ms: # CORECTAT
+    build: ./order-service # CORECTAT
+    container_name: order-ms # CORECTAT
+    ports:
+      - "8083:8083" # Optional for direct testing
+    environment:
+      - ORDER_DB_IP=order-db
+      - ORDER_DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ORDER_DB=${ORDER_DB}
+      - REDIS_HOST=redis-cart
+      - REDIS_PORT=6379
+      - BROKER_HOST=rabbitmq
+      - BROKER_PORT=5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-db:
+        condition: service_started
+      redis-cart:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Toate rutele pentru orders și cart sunt protejate cu JWT
+      - "traefik.http.routers.order-ms.rule=PathPrefix(`/api/orders`) || PathPrefix(`/api/cart`)" # CORECTAT
+      - "traefik.http.routers.order-ms.service=order-ms" # CORECTAT
+      - "traefik.http.routers.order-ms.middlewares=strip-api, cors-frontend, jwt-auth" # CORECTAT
+      - "traefik.http.routers.order-ms.entrypoints=web" # CORECTAT
+      - "traefik.http.services.order-ms.loadbalancer.server.port=8083" # CORECTAT
+
   # --- Databases ---
   user-db:
     image: postgres:16
@@ -181,10 +223,25 @@ services:
       - credential_db_data:/var/lib/postgresql/data
     networks:
       - docker_network
+      
+  order-db:
+    image: postgres:16
+    container_name: order-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${ORDER_DB}
+    ports:
+      - "6003:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
   
 volumes:
   user_db_data:
   credential_db_data:
+  order_db_data:
 
 networks:
   docker_network:
