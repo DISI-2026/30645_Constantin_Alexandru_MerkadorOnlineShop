@@ -161,6 +161,40 @@ services:
 
     - "traefik.http.services.credential.loadbalancer.server.port=8081"
 
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8083:8083" # Optional for direct testing
+    environment:
+      - ORDER_DB_IP=order-db
+      - ORDER_DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ORDER_DB=${ORDER_DB}
+      - REDIS_HOST=redis-cart
+      - REDIS_PORT=6379
+      - BROKER_HOST=rabbitmq
+      - BROKER_PORT=5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-db:
+        condition: service_started
+      redis-cart:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Toate rutele pentru orders și cart sunt protejate cu JWT
+      - "traefik.http.routers.order-service.rule=PathPrefix(`/api/orders`) || PathPrefix(`/api/cart`)"
+      - "traefik.http.routers.order-service.service=order-service"
+      - "traefik.http.routers.order-service.middlewares=strip-api, cors-frontend, jwt-auth"
+      - "traefik.http.routers.order-service.entrypoints=web"
+      - "traefik.http.services.order-service.loadbalancer.server.port=8083"
+
   # --- Databases ---
   user-db:
     image: postgres:16

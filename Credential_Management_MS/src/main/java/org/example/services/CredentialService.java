@@ -1,7 +1,7 @@
 package org.example.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper; // CORECTAT
 import org.apache.coyote.BadRequestException;
-import org.apache.tomcat.util.json.JSONParser;
 import org.example.dtos.CredentialReqDTO;
 import org.example.dtos.CredentialRespDTO;
 import org.example.dtos.builders.CredentialsBuilder;
@@ -11,10 +11,9 @@ import org.example.repositories.CredentialRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
