@@ -195,6 +195,49 @@ services:
       - "traefik.http.routers.order-ms.entrypoints=web" # CORECTAT
       - "traefik.http.services.order-ms.loadbalancer.server.port=8083" # CORECTAT
 
+  product-ms:
+    build: ./product-service
+    container_name: product-ms
+    ports:
+      - "8084:8084"
+    environment:
+      - DB_IP=product-db
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_DBNAME=${PRODUCT_DB}
+      - BROKER_HOST=${BROKER_HOST}
+      - BROKER_PORT=${BROKER_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      product-db:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # --- Public routes GET (fara JWT) ---
+      - "traefik.http.routers.product-public.rule=(PathPrefix(`/api/products`) || PathPrefix(`/api/categories`)) && Method(`GET`)"
+      - "traefik.http.routers.product-public.service=product-ms"
+      - "traefik.http.routers.product-public.middlewares=strip-api,cors-frontend"
+      - "traefik.http.routers.product-public.entrypoints=web"
+      - "traefik.http.routers.product-public.priority=10"
+
+      # --- Protected routes (JWT required) ---
+      - "traefik.http.routers.product-secure.rule=PathPrefix(`/api/products`) || PathPrefix(`/api/categories`)"
+      - "traefik.http.routers.product-secure.service=product-ms"
+      - "traefik.http.routers.product-secure.middlewares=strip-api,cors-frontend,jwt-auth"
+      - "traefik.http.routers.product-secure.entrypoints=web"
+      - "traefik.http.routers.product-secure.priority=5"
+
+      - "traefik.http.services.product-ms.loadbalancer.server.port=8084"
+
   # --- Databases ---
   user-db:
     image: postgres:16
@@ -237,11 +280,26 @@ services:
       - order_db_data:/var/lib/postgresql/data
     networks:
       - docker_network
+
+  product-db:
+    image: postgres:16
+    container_name: product-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${PRODUCT_DB}
+    ports:
+      - "6004:5432"
+    volumes:
+      - product_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
   
 volumes:
   user_db_data:
   credential_db_data:
   order_db_data:
+  product_db_data:
 
 networks:
   docker_network:

@@ -1,0 +1,10 @@
+com\merkador\productservice\presentation\controller\ProductControllerTest.class
+com\merkador\productservice\core\usecase\CategoryServiceTest.class
+com\merkador\productservice\core\usecase\ProductServiceTest$DeleteProduct.class
+com\merkador\productservice\core\usecase\CategoryServiceTest$CreateCategory.class
+com\merkador\productservice\core\usecase\CategoryServiceTest$DeleteCategory.class
+com\merkador\productservice\core\usecase\ProductServiceTest$ReserveStock.class
+com\merkador\productservice\core\usecase\ProductServiceTest$UpdateRating.class
+com\merkador\productservice\core\usecase\ProductServiceTest$CreateProduct.class
+com\merkador\productservice\core\usecase\ProductServiceTest.class
+com\merkador\productservice\core\usecase\ProductServiceTest$ReleaseStock.class

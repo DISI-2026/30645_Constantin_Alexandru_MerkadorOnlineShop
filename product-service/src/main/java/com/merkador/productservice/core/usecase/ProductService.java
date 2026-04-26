@@ -1,0 +1,191 @@
+package com.merkador.productservice.core.usecase;
+
+import com.merkador.productservice.core.domain.Product;
+import com.merkador.productservice.core.exception.BusinessException;
+import com.merkador.productservice.core.exception.ResourceNotFoundException;
+import com.merkador.productservice.core.port.in.ProductFilter;
+import com.merkador.productservice.core.port.in.ProductUseCase;
+import com.merkador.productservice.core.port.out.CategoryRepository;
+import com.merkador.productservice.core.port.out.EsOutboxRepository;
+import com.merkador.productservice.core.port.out.EventPublisher;
+import com.merkador.productservice.core.port.out.ProductRepository;
+import com.merkador.productservice.infrastructure.messaging.event.ProductCreatedEvent;
+import com.merkador.productservice.infrastructure.messaging.event.ProductDeletedEvent;
+import com.merkador.productservice.infrastructure.messaging.event.ProductUpdatedEvent;
+import com.merkador.productservice.infrastructure.messaging.event.StockUpdatedEvent;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class ProductService implements ProductUseCase {
+
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+    private final EsOutboxRepository esOutboxRepository;
+    private final EventPublisher eventPublisher;
+
+    @Override
+    @Transactional
+    public Product createProduct(Product product) {
+        categoryRepository.findById(product.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category", product.getCategoryId()));
+
+        if (productRepository.existsBySlug(product.getSlug())) {
+            throw new BusinessException("Product slug already exists: " + product.getSlug());
+        }
+
+        Product saved = productRepository.save(product);
+        esOutboxRepository.enqueue(saved.getId(), "UPSERT");
+        eventPublisher.publishProductCreated(new ProductCreatedEvent(saved.getId(), saved.getVendorId(), saved.getTitle()));
+
+        log.info("Created product id={} vendor={}", saved.getId(), saved.getVendorId());
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Product updateProduct(UUID id, Product updated, UUID vendorId) {
+        Product existing = findOwnedOrThrow(id, vendorId);
+
+        if (!existing.getSlug().equals(updated.getSlug())
+                && productRepository.existsBySlug(updated.getSlug())) {
+            throw new BusinessException("Product slug already exists: " + updated.getSlug());
+        }
+        if (!existing.getCategoryId().equals(updated.getCategoryId())) {
+            categoryRepository.findById(updated.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category", updated.getCategoryId()));
+        }
+
+        existing.setTitle(updated.getTitle());
+        existing.setSlug(updated.getSlug());
+        existing.setDescription(updated.getDescription());
+        existing.setPrice(updated.getPrice());
+        existing.setCurrency(updated.getCurrency());
+        existing.setStock(updated.getStock());
+        existing.setCategoryId(updated.getCategoryId());
+
+        Product saved = productRepository.save(existing);
+        esOutboxRepository.enqueue(saved.getId(), "UPSERT");
+        eventPublisher.publishProductUpdated(new ProductUpdatedEvent(saved.getId(), saved.getVendorId()));
+
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public void deleteProduct(UUID id, UUID vendorId) {
+        Product product = findOwnedOrThrow(id, vendorId);
+        product.markDeleted();
+        productRepository.save(product);
+        esOutboxRepository.enqueue(id, "DELETE");
+        eventPublisher.publishProductDeleted(new ProductDeletedEvent(id, vendorId));
+        log.info("Soft-deleted product id={}", id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Product getProductById(UUID id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Product> searchProducts(ProductFilter filter) {
+        return productRepository.findAll(filter);
+    }
+
+    @Override
+    @Transactional
+    public Product updateStock(UUID id, int quantity, UUID vendorId) {
+        Product product = findOwnedOrThrow(id, vendorId);
+        product.setStock(quantity);
+        Product saved = productRepository.save(product);
+        esOutboxRepository.enqueue(id, "UPSERT");
+        eventPublisher.publishStockUpdated(new StockUpdatedEvent(id, vendorId, quantity));
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Product updatePrice(UUID id, BigDecimal newPrice, UUID vendorId) {
+        Product product = findOwnedOrThrow(id, vendorId);
+        product.setPrice(newPrice);
+        Product saved = productRepository.save(product);
+        esOutboxRepository.enqueue(id, "UPSERT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Product activateProduct(UUID id, UUID vendorId) {
+        Product product = findOwnedOrThrow(id, vendorId);
+        product.activate();
+        Product saved = productRepository.save(product);
+        esOutboxRepository.enqueue(id, "UPSERT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Product deactivateProduct(UUID id, UUID vendorId) {
+        Product product = findOwnedOrThrow(id, vendorId);
+        product.deactivate();
+        Product saved = productRepository.save(product);
+        esOutboxRepository.enqueue(id, "UPSERT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public void reserveStock(UUID productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+        product.reserveStock(quantity);
+        productRepository.save(product);
+        esOutboxRepository.enqueue(productId, "UPSERT");
+        log.info("Reserved {} units for product {}", quantity, productId);
+    }
+
+    @Override
+    @Transactional
+    public void releaseStock(UUID productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+        product.releaseStock(quantity);
+        productRepository.save(product);
+        esOutboxRepository.enqueue(productId, "UPSERT");
+        log.info("Released {} units for product {}", quantity, productId);
+    }
+
+    @Override
+    @Transactional
+    public void updateRating(UUID productId, BigDecimal newAvg, int reviewCount) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", productId));
+        product.updateRating(newAvg, reviewCount);
+        productRepository.save(product);
+        esOutboxRepository.enqueue(productId, "UPSERT");
+    }
+
+    // -------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------
+
+    private Product findOwnedOrThrow(UUID id, UUID vendorId) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        if (!product.getVendorId().equals(vendorId)) {
+            throw new BusinessException("Product does not belong to this vendor.");
+        }
+        return product;
+    }
+}
