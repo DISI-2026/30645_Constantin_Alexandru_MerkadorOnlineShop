@@ -6,8 +6,9 @@ import org.example.orderservice.dto.CartItemDto;
 import java.util.UUID;
 
 public interface CartService {
-    CartDto getCart(UUID userId);
-    CartDto addItemToCart(UUID userId, CartItemDto item);
-    CartDto removeItemFromCart(UUID userId, String productId);
-    void clearCart(UUID userId);
+    CartDto getCart();
+    CartDto addItemToCart(CartItemDto item);
+    CartDto updateItemInCart(String productId, Integer quantity); // Adăugat pentru PUT
+    CartDto removeItemFromCart(String productId);
+    void clearCart();
 }
