@@ -1,4 +1,4 @@
-package org.example.orderservice.config;
+package org.example.postservice.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -55,7 +55,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .getPayload();
 
             String userId = claims.get("uuid", String.class);
-            
+
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
             if (roles == null) {
@@ -82,3 +82,4 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
