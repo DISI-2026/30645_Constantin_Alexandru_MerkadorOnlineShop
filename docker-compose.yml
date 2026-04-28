@@ -9,10 +9,6 @@ services:
       - "--api.insecure=true"              # Dev dashboard enabled on :8080
       - "--providers.docker=true"          # Detect Docker containers automatically
       - "--entrypoints.web.address=:80"    # Single HTTP entrypoint
-   
-      # JWT plugin (free community version)
-      - "--experimental.plugins.jwt.moduleName=github.com/traefik-plugins/traefik-jwt-plugin"
-      - "--experimental.plugins.jwt.version=v0.7.1"
     ports:
       - "80:80"                            # Access APIs via Traefik
       - "8080:8080"                        # Dev dashboard
@@ -24,15 +20,6 @@ services:
     labels:
        # 1) Middleware to strip /api prefix
       - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
-
-      # Basic Auth
-      #- traefik.http.middlewares.basic-auth.basicauth.users: user:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/ # request header example: Authorization: Basic dXNlcjpwYXNzd29yZA==
-
-      # 2) Middleware: JWT auth
-      - "traefik.http.middlewares.jwt-auth.plugin.jwt.secret=${JWT_SECRET}"
-      - "traefik.http.middlewares.jwt-auth.plugin.jwt.signingMethod=HS256"
-      - "traefik.http.middlewares.jwt-auth.plugin.jwt.authHeader=Authorization"
-      - "traefik.http.middlewares.jwt-auth.plugin.jwt.authScheme=Bearer"
 
       # 3) Middleware: CORS for frontend dev server
       - "traefik.http.middlewares.cors-frontend.headers.accesscontrolalloworiginlist=http://localhost:5173"
@@ -82,7 +69,7 @@ services:
       - "traefik.http.services.frontend-service.loadbalancer.server.port=80" # Nginx default port  
   
   user-ms:
-    build: ./User_Management_MS
+    build: ./user_ms
     container_name: user-ms
     ports:
       - "8082:8082" # Optional for direct testing
@@ -99,31 +86,23 @@ services:
         condition: service_healthy
       user-db:
         condition: service_started
-      credential-ms:
-        condition: service_started
     networks:
       - docker_network
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
 
-      # --- Public routes (no JWT) ---
-      - "traefik.http.routers.user-create.rule=PathPrefix(`/api/users/add`)"
-      - "traefik.http.routers.user-create.service=user"
-      - "traefik.http.routers.user-create.middlewares=strip-api, cors-frontend" # when production-ready, remove cors-frontend middleware
-      - "traefik.http.routers.user-create.entrypoints=web"
-
       # --- Protected routes (JWT required) ---
       - "traefik.http.routers.user-secure.rule=PathPrefix(`/api/users`)"
       - "traefik.http.routers.user-secure.service=user"
-      - "traefik.http.routers.user-secure.middlewares=strip-api, cors-frontend, jwt-auth" # jwt-auth/basic_auth 
+      - "traefik.http.routers.user-secure.middlewares=strip-api, cors-frontend, forward-auth" # we use Traefik's built-in forward auth middleware which will call our JWT validation endpoint
       - "traefik.http.routers.user-secure.entrypoints=web"
 
 
       - "traefik.http.services.user.loadbalancer.server.port=8082"
 
   credential-ms:
-    build: ./Credential_Management_MS
+    build: ./credentials_ms
     container_name: credential-ms
     ports:
       - "8081:8081"
@@ -141,25 +120,35 @@ services:
           condition: service_healthy
       credential-db:
         condition: service_started
+      user-ms:
+        condition: service_started
     networks:
       - docker_network
     restart: unless-stopped
     labels:
-    - "traefik.enable=true"
+      - "traefik.enable=true"
 
-    # --- Public routes (no JWT) ---
-    - "traefik.http.routers.credential-login.rule=PathPrefix(`/api/credentials/login`)"
-    - "traefik.http.routers.credential-login.service=credential"
-    - "traefik.http.routers.credential-login.middlewares=strip-api, cors-frontend"
-    - "traefik.http.routers.credential-login.entrypoints=web"
+      # Declare the forward auth middleware that will be used by both user-ms and credential-ms for protected routes. This will call our /credentials/validate endpoint to check JWT validity.
+      - "traefik.http.middlewares.forward-auth.forwardauth.address=http://credential-ms:8081/credentials/validate"
+      - "traefik.http.middlewares.forward-auth.forwardauth.trustForwardHeader=true"
 
-    # --- Protected routes (JWT required) ---
-    - "traefik.http.routers.credential-secure.rule=PathPrefix(`/api/credentials`)"
-    - "traefik.http.routers.credential-secure.service=credential"
-    - "traefik.http.routers.credential-secure.middlewares=strip-api, cors-frontend, jwt-auth"
-    - "traefik.http.routers.credential-secure.entrypoints=web"
+      # --- Public routes (no JWT) ---
+      - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`)"
+      - "traefik.http.routers.credential-public.service=credential"
+      - "traefik.http.routers.credential-public.middlewares=strip-api, cors-frontend"
+      - "traefik.http.routers.credential-public.entrypoints=web"
 
-    - "traefik.http.services.credential.loadbalancer.server.port=8081"
+      # --- Protected routes (JWT required) ---
+      - "traefik.http.routers.credential-secure.rule=PathPrefix(`/api/credentials`)"
+      - "traefik.http.routers.credential-secure.service=credential"
+      - "traefik.http.routers.credential-secure.middlewares=strip-api, cors-frontend, forward-auth"
+      - "traefik.http.routers.credential-secure.entrypoints=web"
+
+      # Set higher priority for public routes to ensure they are matched before the catch-all secure route. This allows login and registration to work without JWT, while all other credential routes require authentication.
+      - "traefik.http.routers.credential-public.priority=100" 
+      - "traefik.http.routers.credential-secure.priority=50"
+
+      - "traefik.http.services.credential.loadbalancer.server.port=8081"
 
   order-ms: # CORECTAT
     build: ./order-service # CORECTAT
