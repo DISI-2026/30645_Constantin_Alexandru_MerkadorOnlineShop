@@ -178,9 +178,9 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.order-ms.rule=(Path(`/api/orders`) || PathPrefix(`/api/orders/`) || Path(`/api/cart`) || PathPrefix(`/api/cart/`))"
+      - "traefik.http.routers.order-ms.rule=(Path(`/api/orders`) || PathPrefix(`/api/orders/`) || Path(`/api/cart`) || PathPrefix(`/api/cart/`) || PathPrefix(`/api/admin/orders`))"
       - "traefik.http.routers.order-ms.service=order-ms"
-      - "traefik.http.routers.order-ms.middlewares=strip-api, cors-frontend, jwt-auth"
+      - "traefik.http.routers.order-ms.middlewares=strip-api, cors-frontend, forward-auth"
       - "traefik.http.routers.order-ms.entrypoints=web"
       - "traefik.http.services.order-ms.loadbalancer.server.port=8083"
 
@@ -221,7 +221,7 @@ services:
       # --- Protected routes (JWT required) ---
       - "traefik.http.routers.product-secure.rule=PathPrefix(`/api/products`) || PathPrefix(`/api/categories`)"
       - "traefik.http.routers.product-secure.service=product-ms"
-      - "traefik.http.routers.product-secure.middlewares=strip-api,cors-frontend,jwt-auth"
+      - "traefik.http.routers.product-secure.middlewares=strip-api,cors-frontend,forward-auth"
       - "traefik.http.routers.product-secure.entrypoints=web"
       - "traefik.http.routers.product-secure.priority=5"
 

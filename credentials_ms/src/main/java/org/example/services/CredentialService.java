@@ -14,7 +14,6 @@ import org.example.repositories.CredentialVerificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +30,6 @@ public class CredentialService {
 
     private final CredentialRepository credentialRepository;
     private final UserSyncProducer userSyncProducer;
-
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
@@ -76,43 +74,31 @@ public class CredentialService {
         return CredentialBuilder.toCredentialRespDTO(credential);
     }
 
-    // Transactional because we send a message through RabbitMQ to another microservice, so we need to make sure it remains consistent
     @Transactional
     public UUID register(RegisterReqDTO dto) {
-        // 1. Verificăm dacă email-ul există deja
-        Optional<Credential> existingUser = credentialRepository.findByEmail(dto.getEmail());
-        if (existingUser.isPresent()) {
+        credentialRepository.findByEmail(dto.getEmail()).ifPresent(c -> {
             throw new IllegalArgumentException("Email already in use");
-        }
+        });
 
-        // Initially the user is in pending verification state
         Credential credential = new Credential(
                 dto.getEmail(),
                 passwordEncoder.encode(dto.getPassword()),
                 AccountStatus.PENDING_VERIFICATION
         );
-
-        // all new accounts have by default BUYER and SELLER permissions
         credential.addRole("BUYER");
         credential.addRole("SELLER");
 
-        // Inițializăm verificarea și generăm codul
         CredentialVerification verification = new CredentialVerification(credential);
         verification.generateNewCode();
         credential.setVerificationData(verification);
 
-        // Salvăm în baza de date (salvează și în tabela credentials și în user_roles datorită CascadeType.ALL)
         credential = credentialRepository.save(credential);
-
-        // Trimitem mail pt verificare cont
         emailService.sendVerificationEmail(credential.getEmail(), verification.getVerificationCode());
 
-        // Send a message to the User MS to notify it about the new user
         try {
             userSyncProducer.sendUserCreatedEvent(credential.getId(), dto);
         } catch (Exception e) {
             LOGGER.error("Failed to send sync message to User MS. Rolling back.", e);
-            // Note: by throwing an exception, the transaction will be rolled back because of the @Transactional annotation
             throw new RuntimeException("Registration failed, please try again");
         }
 
@@ -127,29 +113,24 @@ public class CredentialService {
             throw new IllegalArgumentException("Incorrect password");
         }
 
-        if (!credential.getStatus().name().equals("ACTIVE")) {
+        if (credential.getStatus() != AccountStatus.ACTIVE) {
             throw new AccountNotActiveException(credential.getStatus().name());
         }
 
-        // We get the list of roles associated with the user
         List<String> roles = credential.getRoles().stream()
                 .map(UserRole::getRole)
                 .collect(Collectors.toList());
 
-        // We choose the first role associated with the user
-        String activeRole = roles.get(0);
+        String activeRole = roles.isEmpty() ? null : roles.get(0);
 
-        // Generăm Access Token
-        String accessToken = jwtService.generateToken(credential.getEmail(), activeRole, roles);
-
-        // Generăm Refresh Token
+        // CORECTAT: Pasăm și UUID-ul la generarea token-ului
+        String accessToken = jwtService.generateToken(credential.getEmail(), credential.getId(), activeRole, roles);
         String refreshToken = refreshTokenService.createRefreshToken(credential);
 
         return new AuthDTO(accessToken, refreshToken, credential.getId(), credential.getEmail(), activeRole, roles);
     }
 
     public void logout(String refreshToken) {
-        // Revocăm refresh token-ul pentru a bloca sesiunea la următoarea expirare a JWT-ului
         refreshTokenService.revokeToken(refreshToken);
     }
 
@@ -161,13 +142,11 @@ public class CredentialService {
                 .map(UserRole::getRole)
                 .collect(Collectors.toList());
 
-        // Verificăm dacă utilizatorul deține rolul pe care vrea să-l activeze
         if (!roles.contains(targetRole.toUpperCase())) {
             throw new IllegalArgumentException("User does not have the " + targetRole + " rights");
         }
 
-        // Generăm și returnăm un nou Access Token (JWT) cu noul rol activ
-        return jwtService.generateToken(email, targetRole.toUpperCase(), roles);
+        return jwtService.generateToken(credential.getEmail(), credential.getId(), targetRole.toUpperCase(), roles);
     }
 
     @Transactional
@@ -177,7 +156,6 @@ public class CredentialService {
 
         String upperRole = newRole.toUpperCase();
 
-        // Verificăm dacă are deja rolul pentru a evita duplicatele
         boolean alreadyHasRole = credential.getRoles().stream()
                 .anyMatch(r -> r.getRole().equals(upperRole));
 
@@ -186,12 +164,10 @@ public class CredentialService {
         }
 
         credential.addRole(upperRole);
-        // CascadeType.ALL se ocupă să insereze în tabela user_roles
         credentialRepository.save(credential);
         LOGGER.info("Role {} added for user {}", upperRole, targetUserId);
     }
 
-    // Changes password when the user is logged in
     @Transactional
     public void changePassword(UUID userId, String oldPassword, String newPassword) {
         Credential credential = credentialRepository.findById(userId)
@@ -206,52 +182,31 @@ public class CredentialService {
         LOGGER.info("Password updated successfully for user {}", userId);
     }
 
-    // changes password when the user is logged off
     @Transactional
     public void forgotPassword(String email) {
         Credential credential = credentialRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(email));
 
-        // Dacă contul e suspendat sau inactiv, nu putem reseta parola
         if (credential.getStatus() != AccountStatus.ACTIVE) {
             throw new IllegalArgumentException("Account is not active. Either the account is suspended or you must activate it");
         }
 
-        // Generăm token-ul de resetare
         String token = passwordResetService.createResetToken(credential);
-
-        // Trimitere link de resetare parola pe mail
         emailService.sendResetPasswordEmail(email, token);
         LOGGER.info("Reset password email sent to: {}", email);
     }
 
-    // The user calls this endpoint when they click on the link in the email
     @Transactional
     public void resetPasswordWithToken(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetService.findByToken(token);
-        if (resetToken == null) {
-            throw new IllegalArgumentException("Invalid or non-existent token");
+        if (resetToken == null || resetToken.isUsed() || resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid or expired token");
         }
 
-        // Verificăm dacă a fost deja folosit (atac replay)
-        if (resetToken.isUsed()) {
-            throw new IllegalArgumentException("This token has already been used");
-        }
-
-        // Verificăm dacă a expirat
-        if (resetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("This token has expired");
-        }
-
-        // Totul este ok, reseteaza parola
         Credential credential = resetToken.getCredential();
-
         credential.setPasswordHash(passwordEncoder.encode(newPassword));
         credentialRepository.save(credential);
-
-        // Seteaza token-ul ca folosit
         passwordResetService.useToken(token);
-
         LOGGER.info("Password successfully reset for user {}", credential.getId());
     }
 
@@ -270,13 +225,9 @@ public class CredentialService {
             credential.setVerificationData(verification);
         }
 
-        // Salvăm email-ul dorit temporar și generăm cod
         verification.setPendingEmail(newEmail);
         verification.generateNewCode();
-
         credentialRepository.save(credential);
-
-        // Trimitem mail pt verificare cont catre adresa noua
         emailService.sendVerificationEmail(newEmail, verification.getVerificationCode());
     }
 
@@ -286,34 +237,20 @@ public class CredentialService {
                 .orElseThrow(() -> new ResourceNotFoundException(userId.toString()));
 
         CredentialVerification verification = credential.getVerificationData();
-
-        if (verification == null || verification.getPendingEmail() == null) {
-            throw new IllegalArgumentException("No pending email update found");
-        }
-
-        if (verification.getVerificationCode() == null || !verification.getVerificationCode().equals(code)) {
-            throw new IllegalArgumentException("Invalid verification code");
-        }
-
-        if (verification.getCodeExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Verification code has expired");
+        if (verification == null || verification.getPendingEmail() == null || verification.getVerificationCode() == null || !verification.getVerificationCode().equals(code) || verification.getCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid or expired verification code");
         }
 
         String newEmail = verification.getPendingEmail();
-
-        // Update email
         credential.setEmail(newEmail);
         verification.clearCode();
         verification.setPendingEmail(null);
-
         credentialRepository.save(credential);
     }
 
-
-    // Directly called by the admin to change the state of the account (OBS: cannot change the state back to PENDING_VERIFICATION)
     @Transactional
     public void updateStatus(UUID targetUserId, AccountStatus newStatus) {
-        if(newStatus == AccountStatus.PENDING_VERIFICATION) return; // dont allow this
+        if(newStatus == AccountStatus.PENDING_VERIFICATION) return;
 
         Credential credential = credentialRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(targetUserId.toString()));
@@ -333,19 +270,12 @@ public class CredentialService {
         }
 
         CredentialVerification verification = credential.getVerificationData();
-
-        if (verification.getVerificationCode() == null || !verification.getVerificationCode().equals(code)) {
-            throw new IllegalArgumentException("Invalid verification code");
+        if (verification.getVerificationCode() == null || !verification.getVerificationCode().equals(code) || verification.getCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid or expired verification code");
         }
 
-        if (verification.getCodeExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Verification code has expired");
-        }
-
-        // Cod corect -> Activăm contul și ștergem codul
         credential.setStatus(AccountStatus.ACTIVE);
         verification.clearCode();
-
         credentialRepository.save(credential);
         LOGGER.info("Account activated successfully for user {}", credential.getId());
     }
@@ -356,30 +286,19 @@ public class CredentialService {
                 .orElseThrow(() -> new ResourceNotFoundException(email));
 
         CredentialVerification verification = credential.getVerificationData();
-
-        // Regula: dacă e ACTIVE și NU are un email în așteptare, nu are de ce să ceară cod
-        if (credential.getStatus() == AccountStatus.ACTIVE &&
-                (verification == null || verification.getPendingEmail() == null)) {
+        if (credential.getStatus() == AccountStatus.ACTIVE && (verification == null || verification.getPendingEmail() == null)) {
             throw new IllegalArgumentException("Account is already active and there is no pending email update.");
         }
 
-        // Inițializăm datele de verificare dacă cumva lipsesc (edge case protection)
         if (verification == null) {
             verification = new CredentialVerification(credential);
             credential.setVerificationData(verification);
         }
 
-        // Generăm un cod nou (care va rescrie codul vechi expirat)
         verification.generateNewCode();
-
         credentialRepository.save(credential);
 
-        // Determinam unde trimitem mail-ul: pe adresa nouă (dacă există) sau pe cea curentă
-        String targetEmail = (verification.getPendingEmail() != null)
-                ? verification.getPendingEmail()
-                : credential.getEmail();
-
-        // Trimitem noul cod generat
+        String targetEmail = (verification.getPendingEmail() != null) ? verification.getPendingEmail() : credential.getEmail();
         emailService.sendVerificationEmail(targetEmail, verification.getVerificationCode());
         LOGGER.info("A new verification code was generated and sent to: {}", targetEmail);
     }

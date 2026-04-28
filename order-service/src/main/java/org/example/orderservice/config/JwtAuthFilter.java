@@ -54,12 +54,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .parseSignedClaims(jwt)
                     .getPayload();
 
-            String userId = claims.getSubject();
-
+            // CORECTAT: Extragem UUID-ul din claim-ul "uid"
+            String userId = claims.get("uuid", String.class);
+            
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
             if (roles == null) {
-                roles = new ArrayList<>(); // Dacă nu există, creăm o listă goală.
+                roles = new ArrayList<>();
             }
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -68,7 +69,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         .collect(Collectors.toList());
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userId,
+                        userId, // Principal-ul este acum UUID-ul ca String
                         null,
                         authorities
                 );
@@ -76,7 +77,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
-            // Token invalid, nu facem nimic, request-ul va rămâne neautentificat
+            // Token invalid, nu facem nimic
         }
 
         filterChain.doFilter(request, response);

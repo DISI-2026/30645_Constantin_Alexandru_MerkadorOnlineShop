@@ -12,12 +12,12 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class JwtService {
 
     private final String secretEnv;
-
     private SecretKey key;
 
     // Inject value from env variable (or default for local dev)
@@ -33,11 +33,13 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(secretEnv.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email, String activeRole, List<String> roles) {
+    // CORECTAT: Adaugă UUID-ul ca un claim separat "uid"
+    public String generateToken(String email, UUID userId, String activeRole, List<String> roles) {
         return Jwts.builder()
+                .subject(email) // Subiectul rămâne email-ul
+                .claim("uuid", userId.toString()) // Adăugăm UUID-ul ca un claim custom
                 .claim("activeRole", activeRole)
                 .claim("roles", roles)
-                .subject(email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1h
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -46,6 +48,12 @@ public class JwtService {
 
     public String extractEmail(String token) {
         return parseClaims(token).getSubject();
+    }
+    
+    // Metodă nouă pentru a extrage UUID-ul din claim
+    public UUID extractUserId(String token) {
+        String uid = parseClaims(token).get("uuid", String.class);
+        return UUID.fromString(uid);
     }
 
     public String extractActiveRole(String token) {
@@ -56,8 +64,6 @@ public class JwtService {
         return (List<String>) parseClaims(token).get("roles");
     }
 
-    // Private helper — parses and validates the token in one shot.
-    // Throws ExpiredJwtException, MalformedJwtException, etc. on failure.
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(key)
@@ -66,4 +72,3 @@ public class JwtService {
                 .getPayload();
     }
 }
-
