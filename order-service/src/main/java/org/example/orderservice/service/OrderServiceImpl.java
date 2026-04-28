@@ -1,8 +1,7 @@
 package org.example.orderservice.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.orderservice.dto.OrderRequestDto;
-import org.example.orderservice.dto.OrderResponseDto;
+import org.example.orderservice.dto.*;
 import org.example.orderservice.dto.event.OrderPlacedEvent;
 import org.example.orderservice.dto.event.OrderStatusChangedEvent;
 import org.example.orderservice.infrastructure.entity.Order;
@@ -11,6 +10,10 @@ import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
 import org.example.orderservice.infrastructure.messaging.OrderEventPublisher;
 import org.example.orderservice.infrastructure.repository.OrderRepository;
 import org.example.orderservice.mapper.OrderMapper;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +29,20 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderEventPublisher orderEventPublisher;
+    private final CartService cartService;
+
+    private UUID getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new IllegalStateException("User is not authenticated.");
+        }
+        return UUID.fromString(authentication.getName());
+    }
 
     @Override
     @Transactional
     public OrderResponseDto createOrder(OrderRequestDto orderRequestDto) {
+        // Logica de creare rămâne neschimbată, deoarece customerId este setat explicit
         Order order = new Order();
         order.setCustomerId(orderRequestDto.getCustomerId());
         order.setDeliveryAddress(orderRequestDto.getDeliveryAddress());
@@ -50,11 +63,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
 
         order.setOrderLines(orderLines);
-
-        BigDecimal totalAmount = orderLines.stream()
-                .map(OrderLine::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        order.setTotalAmount(totalAmount);
+        order.setTotalAmount(orderLines.stream().map(OrderLine::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add));
 
         OrderStatusHistory initialStatus = new OrderStatusHistory();
         initialStatus.setOrder(order);
@@ -63,33 +72,41 @@ public class OrderServiceImpl implements OrderService {
         order.setStatusHistory(List.of(initialStatus));
 
         Order savedOrder = orderRepository.save(order);
-
         publishOrderPlacedEvent(savedOrder);
-
         return OrderMapper.toDto(savedOrder);
     }
 
-    private void publishOrderPlacedEvent(Order order) {
-        List<OrderPlacedEvent.OrderItem> eventItems = order.getOrderLines().stream()
-                .map(line -> OrderPlacedEvent.OrderItem.builder()
-                        .productId(line.getProductId())
-                        .quantity(line.getQuantity())
+    @Override
+    @Transactional
+    public OrderResponseDto checkout(CheckoutRequestDto checkoutRequest) {
+        CartDto cart = cartService.getCart();
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new IllegalStateException("Cannot checkout an empty cart.");
+        }
+
+        List<OrderLineDto> orderLines = cart.getItems().stream()
+                .map(cartItem -> OrderLineDto.builder()
+                        .productId(cartItem.getProductId())
+                        .productTitle(cartItem.getProductTitle())
+                        .unitPrice(cartItem.getUnitPrice())
+                        .quantity(cartItem.getQuantity())
                         .build())
                 .collect(Collectors.toList());
 
-        OrderPlacedEvent event = OrderPlacedEvent.builder()
-                .orderId(order.getId())
-                .customerId(order.getCustomerId())
-                .totalAmount(order.getTotalAmount())
-                .placedAt(order.getPlacedAt())
-                .items(eventItems)
+        OrderRequestDto orderRequest = OrderRequestDto.builder()
+                .customerId(getCurrentUserId())
+                .deliveryAddress(checkoutRequest.getDeliveryAddress())
+                .items(orderLines)
                 .build();
 
-        orderEventPublisher.publishOrderPlacedEvent(event);
+        OrderResponseDto createdOrder = createOrder(orderRequest);
+        cartService.clearCart();
+        return createdOrder;
     }
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN') or @orderServiceImpl.isOrderOwner(authentication, #orderId)")
     public OrderResponseDto getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
                 .map(OrderMapper::toDto)
@@ -99,18 +116,23 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public List<OrderResponseDto> getAllOrders() {
-        return orderRepository.findAll().stream()
+        UUID userId = getCurrentUserId();
+        return orderRepository.findByCustomerId(userId).stream()
                 .map(OrderMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')") // Doar adminii pot schimba statusul la orice
     public OrderResponseDto updateOrderStatus(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
         String oldStatus = order.getStatus();
+        if (List.of("CANCELLED", "DELIVERED").contains(oldStatus)) {
+            throw new IllegalStateException("Cannot change status of a completed or cancelled order.");
+        }
 
         OrderStatusHistory statusUpdate = new OrderStatusHistory();
         statusUpdate.setOrder(order);
@@ -122,16 +144,45 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
 
         Order updatedOrder = orderRepository.save(order);
-
-        OrderStatusChangedEvent event = OrderStatusChangedEvent.builder()
-                .orderId(updatedOrder.getId())
-                .customerId(updatedOrder.getCustomerId())
-                .oldStatus(oldStatus)
-                .newStatus(updatedOrder.getStatus())
-                .changedAt(statusUpdate.getChangedAt())
-                .build();
-        orderEventPublisher.publishOrderStatusChangedEvent(event);
-
+        publishOrderStatusChangedEvent(updatedOrder, oldStatus);
         return OrderMapper.toDto(updatedOrder);
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("@orderServiceImpl.isOrderOwner(authentication, #orderId)")
+    public OrderResponseDto cancelOrder(UUID orderId) {
+        return updateOrderStatusForOwner(orderId, "CANCELLED");
+    }
+
+    public boolean isOrderOwner(Authentication authentication, UUID orderId) {
+        UUID currentUserId = UUID.fromString(authentication.getName());
+        return orderRepository.findById(orderId)
+                .map(order -> order.getCustomerId().equals(currentUserId))
+                .orElse(false);
+    }
+
+    private OrderResponseDto updateOrderStatusForOwner(UUID orderId, String newStatus) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+
+        if (!order.getCustomerId().equals(getCurrentUserId())) {
+            throw new AccessDeniedException("User is not the owner of this order.");
+        }
+        return updateOrderStatus(orderId, newStatus);
+    }
+
+    private void publishOrderPlacedEvent(Order order) {
+        List<OrderPlacedEvent.OrderItem> eventItems = order.getOrderLines().stream()
+                .map(line -> new OrderPlacedEvent.OrderItem(line.getProductId(), line.getQuantity()))
+                .collect(Collectors.toList());
+
+        OrderPlacedEvent event = new OrderPlacedEvent(order.getId(), order.getCustomerId(), order.getTotalAmount(), order.getPlacedAt(), eventItems);
+        orderEventPublisher.publishOrderPlacedEvent(event);
+    }
+
+    private void publishOrderStatusChangedEvent(Order order, String oldStatus) {
+        OrderStatusChangedEvent event = new OrderStatusChangedEvent(order.getId(), order.getCustomerId(), oldStatus, order.getStatus(), LocalDateTime.now());
+        orderEventPublisher.publishOrderStatusChangedEvent(event);
     }
 }

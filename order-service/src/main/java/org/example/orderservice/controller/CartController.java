@@ -3,11 +3,10 @@ package org.example.orderservice.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.orderservice.dto.CartDto;
 import org.example.orderservice.dto.CartItemDto;
+import org.example.orderservice.dto.UpdateCartItemRequestDto;
 import org.example.orderservice.service.CartService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/cart")
@@ -16,24 +15,29 @@ public class CartController {
 
     private final CartService cartService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<CartDto> getCart(@PathVariable UUID userId) {
-        return ResponseEntity.ok(cartService.getCart(userId));
+    @GetMapping
+    public ResponseEntity<CartDto> getCart() {
+        return ResponseEntity.ok(cartService.getCart());
     }
 
-    @PostMapping("/{userId}/items")
-    public ResponseEntity<CartDto> addItemToCart(@PathVariable UUID userId, @RequestBody CartItemDto item) {
-        return ResponseEntity.ok(cartService.addItemToCart(userId, item));
+    @PostMapping("/items")
+    public ResponseEntity<CartDto> addItemToCart(@RequestBody CartItemDto item) {
+        return ResponseEntity.ok(cartService.addItemToCart(item));
     }
 
-    @DeleteMapping("/{userId}/items/{productId}")
-    public ResponseEntity<CartDto> removeItemFromCart(@PathVariable UUID userId, @PathVariable String productId) {
-        return ResponseEntity.ok(cartService.removeItemFromCart(userId, productId));
+    @PutMapping("/items/{productId}")
+    public ResponseEntity<CartDto> updateItemInCart(@PathVariable String productId, @RequestBody UpdateCartItemRequestDto request) {
+        return ResponseEntity.ok(cartService.updateItemInCart(productId, request.getQuantity()));
     }
 
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> clearCart(@PathVariable UUID userId) {
-        cartService.clearCart(userId);
+    @DeleteMapping("/items/{productId}")
+    public ResponseEntity<CartDto> removeItemFromCart(@PathVariable String productId) {
+        return ResponseEntity.ok(cartService.removeItemFromCart(productId));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart() {
+        cartService.clearCart();
         return ResponseEntity.noContent().build();
     }
 }
