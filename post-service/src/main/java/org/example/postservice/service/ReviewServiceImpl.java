@@ -11,6 +11,7 @@ import org.example.postservice.infrastructure.entity.VendorReplyEntity;
 import org.example.postservice.infrastructure.repository.ProductRatingAggregateRepository;
 import org.example.postservice.infrastructure.repository.ReviewRepository;
 import org.example.postservice.infrastructure.repository.VendorReplyRepository;
+import org.example.postservice.infrastructure.entity.Rating;
 import org.example.postservice.mapper.ReviewMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -48,10 +49,8 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponseDto addVendorReply(UUID reviewId, VendorReplyRequestDto vendorReplyRequestDto) {
-        // Extrage UUID-ul vendorului autentificat din JWT
         String authenticatedVendorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
-        // Verifica daca vendors-ul din request este egal cu cel autentificat
+
         if (!authenticatedVendorId.equals(vendorReplyRequestDto.getVendorId().toString())) {
             throw new SecurityException("Vendor can only reply with their own vendor ID");
         }
@@ -99,12 +98,13 @@ public class ReviewServiceImpl implements ReviewService {
         aggregate.setReviewCount(newReviewCount);
         aggregate.setAvgRating(newAvgRating);
 
-        switch (review.getRating()) {
-            case 1 -> aggregate.setCount1Star(aggregate.getCount1Star() + 1);
-            case 2 -> aggregate.setCount2Star(aggregate.getCount2Star() + 1);
-            case 3 -> aggregate.setCount3Star(aggregate.getCount3Star() + 1);
-            case 4 -> aggregate.setCount4Star(aggregate.getCount4Star() + 1);
-            case 5 -> aggregate.setCount5Star(aggregate.getCount5Star() + 1);
+        Rating rating = Rating.fromValue(review.getRating());
+        switch (rating) {
+            case POOR -> aggregate.setCount1Star(aggregate.getCount1Star() + 1);
+            case FAIR -> aggregate.setCount2Star(aggregate.getCount2Star() + 1);
+            case GOOD -> aggregate.setCount3Star(aggregate.getCount3Star() + 1);
+            case VERY_GOOD -> aggregate.setCount4Star(aggregate.getCount4Star() + 1);
+            case EXCELLENT -> aggregate.setCount5Star(aggregate.getCount5Star() + 1);
         }
 
         aggregateRepository.save(aggregate);

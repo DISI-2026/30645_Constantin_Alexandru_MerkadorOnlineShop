@@ -54,7 +54,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .parseSignedClaims(jwt)
                     .getPayload();
 
-            // CORECTAT: Extragem UUID-ul din claim-ul "uid"
             String userId = claims.get("uuid", String.class);
             
             @SuppressWarnings("unchecked")
@@ -69,7 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         .collect(Collectors.toList());
 
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userId, // Principal-ul este acum UUID-ul ca String
+                        userId,
                         null,
                         authorities
                 );
@@ -77,7 +76,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         } catch (Exception e) {
-            // Token invalid, nu facem nimic
+            logger.warn("Invalid or expired JWT token");
         }
 
         filterChain.doFilter(request, response);
