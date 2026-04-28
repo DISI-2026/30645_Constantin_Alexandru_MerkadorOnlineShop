@@ -227,6 +227,36 @@ services:
 
       - "traefik.http.services.product-ms.loadbalancer.server.port=8084"
 
+  post-ms:
+    build: ./post-service
+    container_name: post-ms
+    ports:
+      - "8086:8086"
+    environment:
+      - POST_DB_IP=post-db
+      - POST_DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POST_DB=${POST_DB}
+      - BROKER_HOST=rabbitmq
+      - BROKER_PORT=5672
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      post-db:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.post-ms.rule=PathPrefix(`/api/reviews`)"
+      - "traefik.http.routers.post-ms.service=post-ms"
+      - "traefik.http.routers.post-ms.middlewares=strip-api, cors-frontend, forward-auth"
+      - "traefik.http.routers.post-ms.entrypoints=web"
+      - "traefik.http.services.post-ms.loadbalancer.server.port=8086"
+
   # --- Databases ---
   user-db:
     image: postgres:16
@@ -283,12 +313,27 @@ services:
       - product_db_data:/var/lib/postgresql/data
     networks:
       - docker_network
+
+  post-db:
+    image: postgres:16
+    container_name: post-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POST_DB}
+    ports:
+      - "6005:5432"
+    volumes:
+      - post_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
   
 volumes:
   user_db_data:
   credential_db_data:
   order_db_data:
   product_db_data:
+  post_db_data:
 
 networks:
   docker_network:

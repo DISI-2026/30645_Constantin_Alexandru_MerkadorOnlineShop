@@ -20,15 +20,27 @@ import java.math.BigDecimal;
 public class ProductRatingAggregateEntity {
 
     @Id
+    @Column(name = "product_id")
     private String productId;
 
-    @Column(precision = 3, scale = 2)
+    @Column(name = "avg_rating", precision = 3, scale = 2, nullable = false)
     private BigDecimal avgRating;
 
+    @Column(name = "review_count", nullable = false)
     private long reviewCount;
+
+    @Column(name = "count1_star", nullable = false)
     private long count1Star;
+
+    @Column(name = "count2_star", nullable = false)
     private long count2Star;
+
+    @Column(name = "count3_star", nullable = false)
     private long count3Star;
+
+    @Column(name = "count4_star", nullable = false)
     private long count4Star;
+
+    @Column(name = "count5_star", nullable = false)
     private long count5Star;
 }
