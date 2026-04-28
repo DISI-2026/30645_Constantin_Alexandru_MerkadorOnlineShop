@@ -24,7 +24,7 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers("/admin/**").authenticated() 
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/cart/**").authenticated()
                         .requestMatchers("/orders/**").authenticated()
                         .anyRequest().denyAll()
