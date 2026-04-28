@@ -84,23 +84,23 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, headers, httpStatus, request);
     }
 
-    @Override // CORECTAT: Am adăugat @Override
-    protected ResponseEntity<Object> handleBindException(BindException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+    @ExceptionHandler(BindException.class) // CORECTAT: Am eliminat @Override
+    public ResponseEntity<Object> handleBindException(BindException ex, WebRequest request) {
         var details = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .toList();
 
-        HttpStatus httpStatus = HttpStatus.valueOf(status.value());
+        var status = HttpStatus.BAD_REQUEST;
         var body = new ExceptionHandlerResponseDTO(
                 "Binding failed",
-                httpStatus.getReasonPhrase(),
-                httpStatus.value(),
+                status.getReasonPhrase(),
+                status.value(),
                 BindException.class.getSimpleName(),
                 details,
                 request.getDescription(false)
         );
 
-        return handleExceptionInternal(ex, body, new HttpHeaders(), httpStatus, request);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), status, request);
     }
 
     @Override

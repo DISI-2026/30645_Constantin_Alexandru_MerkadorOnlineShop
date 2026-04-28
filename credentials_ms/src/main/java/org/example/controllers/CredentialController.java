@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -82,7 +83,6 @@ public class CredentialController {
 
     @PostMapping("/switch-role")
     public ResponseEntity<String> switchRole(@RequestBody Map<String, String> body) {
-        // Returnează noul JWT ca simplu string (sau poți face un DTO mic)
         String newJwt = credentialService.switchRole(body.get("email"), body.get("targetRole"));
         return ResponseEntity.ok(newJwt);
     }
@@ -144,31 +144,24 @@ public class CredentialController {
 
     @GetMapping("/validate")
     public ResponseEntity<Void> validateToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
-        System.out.println("=== FORWARD AUTH TRIGGERED ===");
-        System.out.println("Header: " + authHeader);
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("Error: Header or not in expected format.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         String token = authHeader.substring(7);
         try {
+            // CORECTAT: Folosim extractEmail, deoarece subiectul este email-ul
             String email = jwtService.extractEmail(token);
-            System.out.println("Valid token decoded for email: " + email);
-
+            
             CredentialRespDTO user = credentialService.findCredentialByEmail(email);
             
-            if (!user.getStatus().toString().equals("ACTIVE")) {
-                System.out.println("Error: User is not ACTIVE. Current status: " + user.getStatus());
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // 403
+            if (!Objects.equals(user.getStatus(), "ACTIVE")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
 
-            System.out.println("Validation successful! Allowing access.");
-            return ResponseEntity.ok().build(); // 200 OK -> Traefik lets the request through
+            return ResponseEntity.ok().build();
         } catch (Exception e) {
-            System.out.println("Error parsing JWT: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // 401
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 }

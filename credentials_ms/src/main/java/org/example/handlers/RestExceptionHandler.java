@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -82,25 +81,6 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         );
 
         return handleExceptionInternal(ex, body, headers, httpStatus, request);
-    }
-
-    @Override
-    protected ResponseEntity<Object> handleBindException(BindException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        var details = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
-                .toList();
-
-        HttpStatus httpStatus = HttpStatus.valueOf(status.value());
-        var body = new ExceptionHandlerResponseDTO(
-                "Binding failed",
-                httpStatus.getReasonPhrase(),
-                httpStatus.value(),
-                BindException.class.getSimpleName(),
-                details,
-                request.getDescription(false)
-        );
-
-        return handleExceptionInternal(ex, body, new HttpHeaders(), httpStatus, request);
     }
 
     @Override
