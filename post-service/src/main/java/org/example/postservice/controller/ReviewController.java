@@ -7,6 +7,7 @@ import org.example.postservice.dto.VendorReplyRequestDto;
 import org.example.postservice.service.ReviewService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class ReviewController {
     }
 
     @PostMapping("/{reviewId}/reply")
+    @PreAuthorize("hasRole('VENDOR')")
     public ResponseEntity<ReviewResponseDto> addVendorReply(@PathVariable UUID reviewId,
                                                             @RequestBody VendorReplyRequestDto vendorReplyRequestDto) {
         ReviewResponseDto updatedReview = reviewService.addVendorReply(reviewId, vendorReplyRequestDto);

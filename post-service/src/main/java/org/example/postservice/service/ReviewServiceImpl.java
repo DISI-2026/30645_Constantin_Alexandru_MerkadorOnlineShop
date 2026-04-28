@@ -12,6 +12,7 @@ import org.example.postservice.infrastructure.repository.ProductRatingAggregateR
 import org.example.postservice.infrastructure.repository.ReviewRepository;
 import org.example.postservice.infrastructure.repository.VendorReplyRepository;
 import org.example.postservice.mapper.ReviewMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +48,14 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponseDto addVendorReply(UUID reviewId, VendorReplyRequestDto vendorReplyRequestDto) {
+        // Extrage UUID-ul vendorului autentificat din JWT
+        String authenticatedVendorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        
+        // Verifica daca vendors-ul din request este egal cu cel autentificat
+        if (!authenticatedVendorId.equals(vendorReplyRequestDto.getVendorId().toString())) {
+            throw new SecurityException("Vendor can only reply with their own vendor ID");
+        }
+
         ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new EntityNotFoundException("Review not found with id: " + reviewId));
 
