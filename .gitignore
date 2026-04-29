@@ -19,3 +19,6 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+
+# Docker volumes / Local storage
+upload_data/

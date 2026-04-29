@@ -7,6 +7,8 @@ import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 // This entity represents the profile of a user
@@ -37,6 +39,12 @@ public class UserProfile implements Serializable {
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
+
+    @OneToOne(mappedBy = "userProfile", cascade = CascadeType.ALL)
+    private SellerProfile sellerProfile;
+
+    @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AddressBook> addresses = new ArrayList<>();
 
     public UserProfile(){}
 
@@ -104,5 +112,21 @@ public class UserProfile implements Serializable {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public SellerProfile getSellerProfile() {
+        return sellerProfile;
+    }
+
+    public void setSellerProfile(SellerProfile sellerProfile) {
+        this.sellerProfile = sellerProfile;
+    }
+
+    public List<AddressBook> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(List<AddressBook> addresses) {
+        this.addresses = addresses;
     }
 }
