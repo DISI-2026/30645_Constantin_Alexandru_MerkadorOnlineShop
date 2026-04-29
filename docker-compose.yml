@@ -71,6 +71,8 @@ services:
   user-ms:
     build: ./user_ms
     container_name: user-ms
+    volumes:
+      - ./upload_data:/app/uploads # Mount local directory for user uploads (like avatars)
     ports:
       - "8082:8082" # Optional for direct testing
     environment:
@@ -91,6 +93,12 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
+
+      # --- Public routes (no JWT) ---
+      - "traefik.http.routers.user-public.rule=PathPrefix(`/api/users/uploads`)"
+      - "traefik.http.routers.user-public.service=user"
+      - "traefik.http.routers.user-public.middlewares=strip-api, cors-frontend"
+      - "traefik.http.routers.user-public.priority=100"
 
       # --- Protected routes (JWT required) ---
       - "traefik.http.routers.user-secure.rule=PathPrefix(`/api/users`)"
