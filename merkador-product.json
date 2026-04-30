@@ -1,0 +1,369 @@
+{
+  "info": {
+    "name": "Merkador - Product Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8084" },
+    { "key": "token", "value": "PUNE_TOKENUL_AICI" },
+    { "key": "category_id", "value": "" },
+    { "key": "product_id", "value": "" },
+    { "key": "image_id", "value": "" },
+    { "key": "variant_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "CATEGORIES",
+      "item": [
+        {
+          "name": "1. GET toate categoriile active (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories"
+          }
+        },
+        {
+          "name": "2. GET categorii root (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories/roots"
+          }
+        },
+        {
+          "name": "3. GET categorie dupa ID (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories/{{category_id}}"
+          }
+        },
+        {
+          "name": "4. GET subcategorii (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories/{{category_id}}/children"
+          }
+        },
+        {
+          "name": "5. POST creeaza categorie (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Electronice\",\n    \"slug\": \"electronice\",\n    \"sortOrder\": 1,\n    \"active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "6. PUT actualizeaza categorie (ADMIN)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/categories/{{category_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Electronice & IT\",\n    \"slug\": \"electronice-it\",\n    \"sortOrder\": 1,\n    \"active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "7. DELETE sterge categorie (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/categories/{{category_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRODUCTS",
+      "item": [
+        {
+          "name": "8. GET cauta produse cu filtre (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/products?page=0&size=20&sortBy=createdAt&sortDir=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortDir", "value": "desc" },
+                { "key": "minPrice", "value": "100", "disabled": true },
+                { "key": "maxPrice", "value": "9000", "disabled": true },
+                { "key": "minRating", "value": "4", "disabled": true },
+                { "key": "search", "value": "iphone", "disabled": true },
+                { "key": "categoryId", "value": "{{category_id}}", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. GET produs dupa ID (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/products/{{product_id}}"
+          }
+        },
+        {
+          "name": "10. GET produsele mele (VENDOR)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/products/my?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products", "my"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "11. POST creeaza produs (VENDOR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"iPhone 15 Pro\",\n    \"slug\": \"iphone-15-pro\",\n    \"description\": \"Telefon Apple flagship 2024\",\n    \"price\": 5999.99,\n    \"currency\": \"RON\",\n    \"stock\": 30,\n    \"categoryId\": \"{{category_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "12. PUT actualizeaza produs (VENDOR)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"iPhone 15 Pro Max\",\n    \"slug\": \"iphone-15-pro-max\",\n    \"description\": \"Descriere actualizata\",\n    \"price\": 6499.99,\n    \"currency\": \"RON\",\n    \"stock\": 25,\n    \"categoryId\": \"{{category_id}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "13. PATCH actualizeaza stoc (VENDOR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/stock",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"stock\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "14. PATCH actualizeaza pret (VENDOR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/price",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"price\": 5499.99\n}"
+            }
+          }
+        },
+        {
+          "name": "15. PATCH activeaza produs (VENDOR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/activate"
+          }
+        },
+        {
+          "name": "16. PATCH dezactiveaza produs (VENDOR)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/deactivate"
+          }
+        },
+        {
+          "name": "17. DELETE sterge produs (VENDOR)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRODUCT IMAGES",
+      "item": [
+        {
+          "name": "18. GET imagini produs (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/images"
+          }
+        },
+        {
+          "name": "19. POST adauga imagine (VENDOR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/images",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"url\": \"https://example.com/iphone15.jpg\",\n    \"altText\": \"iPhone 15 Pro negru\",\n    \"sortOrder\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "20. DELETE sterge imagine (VENDOR)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/images/{{image_id}}"
+          }
+        },
+        {
+          "name": "21. PUT reordoneaza imagini (VENDOR)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/images/reorder",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"orderedImageIds\": [\"{{image_id}}\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PRODUCT VARIANTS",
+      "item": [
+        {
+          "name": "22. GET variante produs (PUBLIC)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/variants"
+          }
+        },
+        {
+          "name": "23. POST adauga varianta (VENDOR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/variants",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sku\": \"IPH15PRO-128-BLACK\",\n    \"label\": \"128GB Negru\",\n    \"priceModifier\": 0.00,\n    \"stock\": 15\n}"
+            }
+          }
+        },
+        {
+          "name": "24. PUT actualizeaza varianta (VENDOR)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/variants/{{variant_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"sku\": \"IPH15PRO-256-BLACK\",\n    \"label\": \"256GB Negru\",\n    \"priceModifier\": 200.00,\n    \"stock\": 10\n}"
+            }
+          }
+        },
+        {
+          "name": "25. DELETE sterge varianta (VENDOR)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products/{{product_id}}/variants/{{variant_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SECURITY TESTS",
+      "item": [
+        {
+          "name": "26. POST categorie fara token - 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/v1/categories",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test\",\n    \"slug\": \"test\",\n    \"sortOrder\": 1,\n    \"active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "27. POST produs cu token ADMIN - 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/v1/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Test\",\n    \"slug\": \"test-produs\",\n    \"price\": 100,\n    \"currency\": \"RON\",\n    \"stock\": 5,\n    \"categoryId\": \"{{category_id}}\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
