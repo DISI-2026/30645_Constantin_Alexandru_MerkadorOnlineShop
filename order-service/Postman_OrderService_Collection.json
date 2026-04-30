@@ -1,0 +1,637 @@
+{
+  "info": {
+    "_postman_id": "order-service-collection",
+    "name": "Order Service API - AUTOMATED",
+    "description": "Complete Postman collection with automated flow - Run entire collection for full test!",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global Setup - Run once at collection start",
+          "if (!pm.globals.get('automated_setup_done')) {",
+          "    pm.globals.set('service_url', 'http://localhost:8083');",
+          "    pm.globals.set('credentials_url', 'http://localhost:8082');",
+          "    pm.globals.set('test_email', 'user@example.com');",
+          "    pm.globals.set('test_password', 'password123');",
+          "    pm.globals.set('admin_email', 'admin@example.com');",
+          "    pm.globals.set('admin_password', 'admin123');",
+          "    pm.globals.set('automated_setup_done', true);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 LOGIN & GET JWT TOKENS",
+      "description": "Auto-login to get tokens (Run First!)",
+      "item": [
+        {
+          "name": "1. Get User JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.globals.set('jwt_token', jsonData.token);",
+                  "pm.variables.set('jwt_token', jsonData.token);",
+                  "console.log('✅ JWT Token saved: ' + jsonData.token.substring(0, 20) + '...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8082/credentials/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["credentials", "login"]
+            }
+          }
+        },
+        {
+          "name": "2. Get Admin JWT Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Admin login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.globals.set('admin_jwt_token', jsonData.token);",
+                  "pm.variables.set('admin_jwt_token', jsonData.token);",
+                  "console.log('✅ Admin JWT Token saved: ' + jsonData.token.substring(0, 20) + '...');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8082/credentials/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8082",
+              "path": ["credentials", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 CART OPERATIONS",
+      "description": "Cart management endpoints - AUTO FLOW",
+      "item": [
+        {
+          "name": "1. Add Item to Cart (PROD-001)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Item added successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Cart has items', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.items.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PROD-001\",\n  \"productTitle\": \"Premium Laptop\",\n  \"quantity\": 2,\n  \"unitPrice\": 29.99\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/cart/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "2. Add Another Item to Cart (PROD-002)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Second item added', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Cart has multiple items', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.totalItems).to.equal(3);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PROD-002\",\n  \"productTitle\": \"Wireless Mouse\",\n  \"quantity\": 1,\n  \"unitPrice\": 49.99\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/cart/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Cart (Verify Items)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get cart successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Cart has 2 products', function () {",
+                  "    pm.expect(jsonData.items.length).to.equal(2);",
+                  "});",
+                  "",
+                  "pm.test('Cart total is correct', function () {",
+                  "    pm.expect(jsonData.total).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/cart",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["cart"]
+            }
+          }
+        },
+        {
+          "name": "4. Update Item Quantity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Quantity updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Updated item has new quantity', function () {",
+                  "    var item = jsonData.items.find(i => i.productId === 'PROD-001');",
+                  "    pm.expect(item.quantity).to.equal(5);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 5\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/cart/items/PROD-001",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["cart", "items", "PROD-001"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 ORDER OPERATIONS",
+      "description": "Order management endpoints - AUTO FLOW",
+      "item": [
+        {
+          "name": "1. Checkout (Create Order)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Order created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Order has ID', function () {",
+                  "    pm.expect(jsonData.id).to.exist;",
+                  "});",
+                  "",
+                  "// Save order ID for next requests",
+                  "pm.globals.set('orderId', jsonData.id);",
+                  "pm.variables.set('orderId', jsonData.id);",
+                  "console.log('✅ Order created with ID: ' + jsonData.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryAddress\": \"123 Main St, Bucharest, Romania 010101\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/orders/checkout",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["orders", "checkout"]
+            }
+          }
+        },
+        {
+          "name": "2. Get All Orders (Order History)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get orders successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Orders list is array', function () {",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('At least one order exists', function () {",
+                  "    pm.expect(jsonData.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["orders"]
+            }
+          }
+        },
+        {
+          "name": "3. Get Order Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Get order details successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Order has status', function () {",
+                  "    pm.expect(jsonData.status).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Order has delivery address', function () {",
+                  "    pm.expect(jsonData.deliveryAddress).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/orders/{{orderId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["orders", "{{orderId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 ADMIN OPERATIONS",
+      "description": "Admin-only order management - AUTO STATUS UPDATE",
+      "item": [
+        {
+          "name": "1. Update Status to CONFIRMED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status update successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Order status is CONFIRMED', function () {",
+                  "    pm.expect(jsonData.status).to.equal('CONFIRMED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/admin/orders/{{orderId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["admin", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "2. Update Status to SHIPPED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status update to SHIPPED successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Order status is SHIPPED', function () {",
+                  "    pm.expect(jsonData.status).to.equal('SHIPPED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHIPPED\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/admin/orders/{{orderId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["admin", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "3. Update Status to DELIVERED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status update to DELIVERED successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Order status is DELIVERED', function () {",
+                  "    pm.expect(jsonData.status).to.equal('DELIVERED');",
+                  "});",
+                  "",
+                  "pm.test('Status history has transitions', function () {",
+                  "    pm.expect(jsonData.statusHistory.length).to.be.greaterThan(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_jwt_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8083/admin/orders/{{orderId}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["admin", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "4. Final Check - Get Order Summary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('✅ ALL TESTS COMPLETED SUCCESSFULLY!', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('Order FINAL status is DELIVERED', function () {",
+                  "    pm.expect(jsonData.status).to.equal('DELIVERED');",
+                  "});",
+                  "",
+                  "console.log('');",
+                  "console.log('🎉🎉🎉 FULL AUTOMATED TEST FLOW COMPLETED 🎉🎉🎉');",
+                  "console.log('Order ID: ' + jsonData.id);",
+                  "console.log('Final Status: ' + jsonData.status);",
+                  "console.log('Status History Length: ' + jsonData.statusHistory.length);",
+                  "console.log('');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8083/orders/{{orderId}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8083",
+              "path": ["orders", "{{orderId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token for regular user authentication"
+    },
+    {
+      "key": "admin_jwt_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token for admin/vendor authentication"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string",
+      "description": "Order ID from list orders response"
+    }
+  ]
+}
+

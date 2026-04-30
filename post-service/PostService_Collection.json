@@ -1,0 +1,419 @@
+{
+  "info": {
+    "name": "Post Service - Review Management API",
+    "description": "Complete test collection for post-service (NO ROLE VALIDATION - Auth Optional)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. CREATE REVIEW (Public)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"productId\": \"prod-12345\",\n  \"customerId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"orderId\": \"order-67890\",\n  \"rating\": 5,\n  \"body\": \"This product exceeded my expectations. Great quality and fast delivery!\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Status Code: ' + pm.response.code);",
+              "console.log('Response Body: ' + pm.response.text());",
+              "",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "    try {",
+              "        const responseData = pm.response.json();",
+              "        console.log('Response Data: ' + JSON.stringify(responseData));",
+              "        ",
+              "        if (responseData.id) {",
+              "            pm.environment.set('review_id', responseData.id);",
+              "            pm.globals.set('review_id_global', responseData.id);",
+              "            console.log('✅ Review ID saved: ' + responseData.id);",
+              "        } else {",
+              "            console.log('❌ No ID in response');",
+              "        }",
+              "        ",
+              "        if (responseData.productId) {",
+              "            pm.environment.set('product_id', responseData.productId);",
+              "            console.log('✅ Product ID saved: ' + responseData.productId);",
+              "        }",
+              "    } catch(e) {",
+              "        console.log('❌ JSON Parse Error: ' + e.message);",
+              "    }",
+              "} else {",
+              "    console.log('❌ Failed - Status: ' + pm.response.code);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. GET REVIEWS BY PRODUCT (Public)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8086/reviews/product/{{product_id}}",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "product",
+            "{{product_id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. ADD VENDOR REPLY (Protected - VENDOR Role)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{vendor_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"{{vendor_id}}\",\n  \"body\": \"Thank you for your review! We appreciate your feedback and we're glad you're satisfied with our product.\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/{{review_id}}/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "{{review_id}}",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    console.log('✅ Vendor reply added successfully');",
+              "    pm.environment.set('reply_status', 'REPLIED');",
+              "} else if (pm.response.code === 401) {",
+              "    console.log('❌ Unauthorized - Missing or invalid JWT token');",
+              "} else if (pm.response.code === 403) {",
+              "    console.log('❌ Forbidden - User does not have VENDOR role');",
+              "} else if (pm.response.code === 400) {",
+              "    console.log('❌ Bad Request - Vendor ID mismatch or invalid data');",
+              "} else if (pm.response.code === 404) {",
+              "    console.log('❌ Review not found');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3a. TEST - Add Reply WITHOUT Token (401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"{{vendor_id}}\",\n  \"body\": \"Trying to reply without auth token\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/{{review_id}}/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "{{review_id}}",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Should return 401 Unauthorized', function() {",
+              "    pm.expect(pm.response.code).to.equal(401);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3b. TEST - Add Reply WITH Invalid Token (401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer invalid_token_xyz",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"{{vendor_id}}\",\n  \"body\": \"Trying with invalid token\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/{{review_id}}/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "{{review_id}}",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Should return 401 for invalid token', function() {",
+              "    pm.expect(pm.response.code).to.equal(401);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3c. TEST - Add Reply WITH Wrong Vendor ID (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{vendor_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"00000000-0000-0000-0000-000000000000\",\n  \"body\": \"Using wrong vendor ID\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/{{review_id}}/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "{{review_id}}",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Should return 400 for vendor ID mismatch', function() {",
+              "    pm.expect(pm.response.code).to.equal(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3d. TEST - Add Reply to Non-existent Review (404)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{vendor_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"{{vendor_id}}\",\n  \"body\": \"Try to reply to non-existent review\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/00000000-0000-0000-0000-000000000000/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "00000000-0000-0000-0000-000000000000",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Should return 404 for non-existent review', function() {",
+              "    pm.expect(pm.response.code).to.equal(404);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3e. TEST - Add Reply WITH Non-VENDOR Role (403)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendorId\": \"{{vendor_id}}\",\n  \"body\": \"Trying to reply as non-vendor user\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8086/reviews/{{review_id}}/reply",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8086",
+          "path": [
+            "reviews",
+            "{{review_id}}",
+            "reply"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Should return 403 for non-VENDOR user', function() {",
+              "    pm.expect(pm.response.code).to.equal(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "vendor_token",
+      "value": "PASTE_YOUR_VENDOR_JWT_TOKEN_HERE",
+      "type": "string"
+    },
+    {
+      "key": "customer_token",
+      "value": "PASTE_YOUR_CUSTOMER_JWT_TOKEN_HERE",
+      "type": "string"
+    },
+    {
+      "key": "vendor_id",
+      "value": "PASTE_YOUR_VENDOR_UUID_HERE",
+      "type": "string"
+    },
+    {
+      "key": "review_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "prod-12345",
+      "type": "string"
+    },
+    {
+      "key": "reply_status",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
+

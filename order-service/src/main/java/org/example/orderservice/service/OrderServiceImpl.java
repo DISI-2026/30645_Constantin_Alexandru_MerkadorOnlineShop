@@ -42,7 +42,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDto createOrder(OrderRequestDto orderRequestDto) {
-        // Logica de creare rămâne neschimbată, deoarece customerId este setat explicit
         Order order = new Order();
         order.setCustomerId(orderRequestDto.getCustomerId());
         order.setDeliveryAddress(orderRequestDto.getDeliveryAddress());
@@ -124,7 +123,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')") // Doar adminii pot schimba statusul la orice
+    @PreAuthorize("hasRole('ADMIN')")
     public OrderResponseDto updateOrderStatus(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
