@@ -9,9 +9,9 @@ import java.util.UUID;
 
 public interface OrderService {
     OrderResponseDto createOrder(OrderRequestDto orderRequestDto);
-    OrderResponseDto checkout(CheckoutRequestDto checkoutRequest); // Adăugat
+    OrderResponseDto checkout(CheckoutRequestDto checkoutRequest);
     OrderResponseDto getOrderById(UUID orderId);
     List<OrderResponseDto> getAllOrders();
     OrderResponseDto updateOrderStatus(UUID orderId, String newStatus);
-    OrderResponseDto cancelOrder(UUID orderId); // Adăugat
+    OrderResponseDto cancelOrder(UUID orderId);
 }
