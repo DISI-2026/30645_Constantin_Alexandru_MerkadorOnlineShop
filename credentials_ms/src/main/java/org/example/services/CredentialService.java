@@ -130,6 +130,33 @@ public class CredentialService {
         return new AuthDTO(accessToken, refreshToken, credential.getId(), credential.getEmail(), activeRole, roles);
     }
 
+    @Transactional
+    public AuthDTO refreshToken(String refreshTokenStr) {
+        RefreshToken tokenEntity = refreshTokenService.validateAndGetToken(refreshTokenStr);
+        Credential user = tokenEntity.getCredential();
+
+        // Vf daca utilizatorul este activ
+        if (user.getStatus() != AccountStatus.ACTIVE) {
+            throw new AccountNotActiveException(user.getStatus().name());
+        }
+
+        List<String> roles = user.getRoles().stream()
+                .map(UserRole::getRole)
+                .collect(Collectors.toList());
+
+        String activeRole;
+        if (roles.contains("ADMIN")) {
+            activeRole = "ADMIN";
+        } else {
+            activeRole = roles.isEmpty() ? null : roles.get(0);
+        }
+
+        // Generăm un nou Access Token dar pastram refresh token-ul vechi
+        String newAccessToken = jwtService.generateToken(user.getEmail(), user.getId(), activeRole, roles);
+
+        return new AuthDTO(newAccessToken, refreshTokenStr, user.getId(), user.getEmail(), activeRole, roles);
+    }
+
     public void logout(String refreshToken) {
         refreshTokenService.revokeToken(refreshToken);
     }

@@ -70,6 +70,22 @@ public class CredentialController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthDTO> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        try {
+            AuthDTO authData = credentialService.refreshToken(refreshToken);
+            return ResponseEntity.ok(authData);
+        } catch (Exception e) {
+            // If the refresh token is expired or invalid, force them to log in again
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
 
     // ==========================================
     // 2. RUTE PRIVATE - UTILIZATOR

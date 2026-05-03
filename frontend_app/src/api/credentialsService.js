@@ -1,46 +1,74 @@
 // src/api/credentialsService.js
 
-// fetchWrapper must be imported to handle JWT injection and 401 redirection
 import { fetchWrapper } from '../utils/fetchWrapper';
 
 const BASE_URL = '/api/credentials';
 
-/**
- * Handles the login request to the backend.
- * @param {string} username - The user's username.
- * @param {string} password - The user's password.
- * @returns {Promise<Object>} - The user data, including the JWT and role.
- */
-export const login = async (username, password) => {
-    try {
-        const response = await fetch(`${BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, password }),
-        });
+// Auth Endpoints
+// Login: POST /credentials/login { email, password }
+export const login = async (email, password) => {
+    const response = await fetch(`${BASE_URL}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
 
-        if (!response.ok) {
-            // Handle HTTP errors (e.g., 401 Unauthorized for bad credentials)
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Login failed due to server error.');
-        }
-
-        const data = await response.json();
-        return data;
-
-    } catch (error) {
-        console.error('Error during login API call:', error);
-        throw error;
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // Throw the raw object so we can read errorData.resource in the UI
+        throw new Error(errorData.message || 'Login failed. Please try again.');
     }
+
+    return response.json();
 };
 
-export const getCredentialsById = async (userId) => {
-    // Calls: /api/credentials
-    return fetchWrapper(`${BASE_URL}/${userId}`, { method: 'GET' });
+// Register: POST /credentials/add { email, password, firstName, lastName }
+export const register = async ({ email, password, firstName, lastName }) => {
+  const response = await fetch(`${BASE_URL}/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, firstName, lastName }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Registration failed.');
+  }
+  return response.json().catch(() => ({}));
 };
 
-export const getAllCredentials = async () => {
-    return fetchWrapper(BASE_URL, { method: 'GET' });
-}
+// Activate Account: POST /credentials/activate?email=E&code=C
+export const activate = async (email, code) => {
+  return fetchWrapper(`${BASE_URL}/activate?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`, {
+    method: 'POST',
+  });
+};
+
+// Resend Code: POST /credentials/resend-code?email=E
+export const resendCode = async (email) => {
+  return fetchWrapper(`${BASE_URL}/resend-code?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
+  });
+};
+
+// Forgot Password: POST /credentials/forgot-password?email=E
+export const forgotPassword = async (email) => {
+  return fetchWrapper(`${BASE_URL}/forgot-password?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
+  });
+};
+
+// Reset Password: POST /credentials/reset-password?token=T  body: { newPassword }
+export const resetPassword = async (token, newPassword) => {
+  return fetchWrapper(`${BASE_URL}/reset-password?token=${encodeURIComponent(token)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword }),
+  });
+};
+
+// Logout: POST /credentials/logout?refreshToken=...
+export const logout = async (refreshToken) => {
+  return fetchWrapper(`${BASE_URL}/logout?refreshToken=${encodeURIComponent(refreshToken)}`, {
+    method: 'POST',
+  });
+};

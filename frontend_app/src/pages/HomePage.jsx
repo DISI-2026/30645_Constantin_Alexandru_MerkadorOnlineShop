@@ -1,47 +1,52 @@
 // src/pages/HomePage.jsx
-import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../styles/HomePage.css';
-import reactLogo from '../assets/react-yellow.svg';
 
+// ==========================================
+// 4. MAIN HOMEPAGE COMPONENT
+// ==========================================
 const HomePage = () => {
-    const { logout, role, userUsername } = useAuth();
+    const { logout, activeRole, firstName, lastName, isAuthenticated } = useAuth();
+    const navigate = useNavigate();
+
+    const handleAuthSelect = (e) => {
+        const route = e.target.value;
+        if (route) {
+            navigate(route);
+        }
+    };
 
     return (
-        <div className="home-page">
-            <div className="home-container">
-                <div className="home-header">
-                    <h1 className="home-title">⚡ Energy Home ⚡</h1>
-                    <p className="home-text">
-                        Welcome back, {" "}
-                        <span className="home-username">{userUsername}</span>.
-                    </p>
-
-                    <img
-                        src={reactLogo}
-                        alt="React Logo"
-                        className="react-logo"
-                    />
+        <div className="home-layout">
+            <header className="topbar">
+                <div className="topbar-left">
+                    <span className="brand-name">Merkador</span>
                 </div>
 
-                <div className="home-footer">
-                    {role === 'ADMIN' && (
-                        <Link to="/admin" className="home-link admin-link">
-                            Go to Admin Page
-                        </Link>
-                    )}
-                    {role === 'CLIENT' && (
-                        <Link to="/client" className="home-link admin-link">
-                            Go to Client Page
-                        </Link>
-                    )}
+                <div className="topbar-right">
+                    {isAuthenticated ? (
+                        <div className="user-controls">
+                            <span className="welcome-text">Welcome, <strong>{firstName} {lastName}</strong></span>
 
-                    <button onClick={logout} className="logout-button">
-                        Log Out
-                    </button>
+                            {/* Use activeRole for the conditional rendering */}
+                            {activeRole === 'ADMIN' && <Link to="/admin" className="nav-button">Admin Dashboard</Link>}
+                            {activeRole === 'BUYER' && <Link to="/buyer" className="nav-button">Buyer Dashboard</Link>}
+                            {activeRole === 'SELLER' && <Link to="/seller" className="nav-button">Seller Dashboard</Link>}
+
+                            <button onClick={logout} className="nav-button logout-button">Log Out</button>
+                        </div>
+                    ) : (
+                        <div className="auth-controls">
+                            <select className="auth-combobox" onChange={handleAuthSelect} defaultValue="">
+                                <option value="" disabled>Login / Sign Up</option>
+                                <option value="/login">Login</option>
+                                <option value="/signup">Sign Up</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
-            </div>
+            </header>
         </div>
     );
 };
