@@ -1,9 +1,0 @@
-{
-    "fullName": "John Cena",
-    "address": "321 Elm St",
-    "email": "johncena@example.com",
-    "username": "johncena",
-    "password": "pass321",
-    "newPassword": "pass",
-    "role": "CLIENT"
-}

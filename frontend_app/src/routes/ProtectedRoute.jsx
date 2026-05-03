@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
  * @param {{ allowedRoles: string[] }} props - Array of roles allowed to access the route.
  */
 const ProtectedRoute = ({ allowedRoles = [] }) => {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, activeRole } = useAuth();
 
   // 1. Check Authentication Status
   if (!isAuthenticated) {
@@ -17,25 +17,12 @@ const ProtectedRoute = ({ allowedRoles = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // 2. Check Role-Based Access Control (RBAC)
-  // If allowedRoles is empty, assume any authenticated user can access.
-  const isAuthorized = allowedRoles.length === 0 || allowedRoles.includes(role);
+  // 2. Check Role-Based Access Control (RBAC) using activeRole (CLIENT/ADMIN)
+  const isAuthorized = allowedRoles.length === 0 || allowedRoles.includes(activeRole);
 
   if (!isAuthorized) {
-    // User is logged in but does not have the required role:
-    // Redirect them to an Unauthorized page or their own dashboard.
-    console.warn(`User role "${role}" is not authorized for this page.`);
-
-    // Choose the appropriate redirect for unauthorized access:
-    // Option A: Specific Unauthorized Page
-    // return <Navigate to="/unauthorized" replace />;
-
-    // Option B: Redirect back to their own dashboard
-    // if (role === 'ADMIN') return <Navigate to="/admin" replace />;
-    // if (role === 'CLIENT') return <Navigate to="/client" replace />;
-
-    // Option C: Redirect to a generic dashboard
-    // Default fallback
+    console.warn(`User role "${activeRole}" is not authorized for this page.`);
+    // Redirect to Home per spec
     return <Navigate to="/" replace />;
   }
 

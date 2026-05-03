@@ -4,8 +4,13 @@
     position: fixed;
     left: 50%;
     top: 50%;
-    transform: translate(-50%, -50%); /* O metoda mai buna de centrare fata de left/top fix */
-    width: 400px;
+    transform: translate(-50%, -50%);
+
+    /* FIX: Make width flexible but capped, so text doesn't overflow */
+    width: 100%;
+    max-width: 450px;
+    box-sizing: border-box; /* Ensures padding stays inside the width */
+
     padding: 30px;
     border: 2px solid #333;
     border-radius: 18px;

@@ -1,108 +1,116 @@
 /* src/styles/HomePage.css */
 
-.home-page {
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    justify-content: left;
-    align-items: center;
-    background-color: #121212;
-    margin: 1px;
-
-    /* Background image setup */
-    background-image: url('../assets/homepage.jpg');
-    background-size: cover;      /* makes it cover the entire page */
-    background-position: center; /* centers the image */
-    background-repeat: no-repeat;/* prevents tiling */
-    background-attachment: fixed;/* optional: makes it stay fixed while scrolling */
-}
-
-/* Main container */
-.home-container {
+/* Main layout container spanning the full viewport */
+.home-layout {
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* space content top ↔ bottom */
-    width: 30%;
-    max-width: 800px;
-    min-height: 85vh;
-    padding: 2rem;
+    height: 100vh;
+    width: 100vw;
+    background-color: #121212;
+    overflow: hidden; /* Prevents scrolling bars if canvas expands */
+}
+
+/* --- TOPBAR STYLES --- */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
     background-color: #1c1c1c;
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid #64bded;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    z-index: 10; /* Ensures the topbar sits above the 3D scene */
 }
 
-/* Centered header section */
-.home-header {
-    text-align: center;
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-.home-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: #df4f23;
-    margin-bottom: 1rem;
+.topbar-logo {
+    height: 40px;
+    width: auto;
+    animation: logo-spin infinite 20s linear;
 }
 
-.home-text {
-    font-size: 1.25rem;
+.brand-name {
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #64bded;
+    letter-spacing: 1px;
+}
+
+/* --- RIGHT CONTROLS STYLES --- */
+.user-controls, .auth-controls {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.welcome-text {
     color: #bbb;
-    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
 }
 
-.home-username {
-    font-weight: 700;
+.welcome-text strong {
     color: #ffffff;
 }
 
-/* Bottom button area */
-.home-footer {
-    display: flex;
-    justify-content: space-between; /* admin left, logout right */
-    align-items: center;
-    margin-top: auto; /* push it to bottom */
-    padding-top: 2rem;
-}
-
-/* Links/buttons */
-.home-link {
-    display: inline-block;
-    padding: 0.75rem 1.25rem;
+/* Button styles for Admin/Client/Logout */
+.nav-button {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
     font-weight: 600;
-    color: #fff;
-    border-radius: 8px;
     text-decoration: none;
-    transition: background-color 0.3s ease;
-}
-
-.admin-link {
-    border: 2px solid #ef4444;
-    color: #ef4444;
-}
-
-.admin-link:hover {
-    background-color: #131313;
-    border: 2px solid #ff7676;
-    color: #ff7676;
-}
-
-.logout-button {
-    padding: 0.75rem 1.5rem;
-    border: 2px solid #ef4444;
-    color: #ef4444;
-    background: none;
-    border-radius: 8px;
-    font-weight: 600;
+    color: #64bded;
+    background-color: transparent;
+    border: 2px solid #64bded;
     cursor: pointer;
+    font-size: 0.95rem;
     transition: all 0.2s ease;
 }
 
-.logout-button:hover {
+.nav-button:hover {
     background-color: #131313;
-    border: 2px solid #ff7676;
-    color: #ff7676;
+    border-color: #6bc4ff;
+    color: #6bc4ff;
 }
 
-/* --- NEW KEYFRAME ANIMATION --- */
+/* Combobox styles for Logged Out users */
+.auth-combobox {
+    padding: 0.6rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #64bded;
+    background-color: #1c1c1c;
+    border: 2px solid #64bded;
+    cursor: pointer;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.auth-combobox:hover {
+    background-color: #131313;
+    border-color: #6bc4ff;
+    color: #6bc4ff;
+}
+
+.auth-combobox option {
+    background-color: #1c1c1c;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* --- CANVAS CONTAINER --- */
+.canvas-container {
+    flex: 1; /* This is the magic line that makes it fill the rest of the height */
+    width: 100%;
+    position: relative;
+    background-color: #242424; /* Fallback color behind the 3D scene */
+}
+
 @keyframes logo-spin {
     from {
         transform: rotate(0deg);
@@ -112,14 +120,57 @@
     }
 }
 
-/* --- LOGO STYLING --- */
-.react-logo {
-    /* Existing animation and sizing */
-    width: 250px;
-    height: auto;
-    margin-top: 60px;
-    margin-bottom: 20px;
-    animation: logo-spin infinite 20s linear;
+.info-panel-overlay {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 350px;
 
-    filter: drop-shadow(0 0 2em #ff462e); /* Optional: Adds a cool shadow */
+    /* Transparent Frosted Glass Effect */
+    background: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+
+    padding: 2.5rem;
+    color: #fff;
+    z-index: 10; /* Ensures it sits on top of the 3D canvas */
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+
+    /* Prevents the panel from blocking your mouse from clicking/dragging the 3D canvas behind it */
+    pointer-events: none;
+}
+
+/* Typography */
+.info-panel-overlay h2 {
+    margin-top: 0;
+    color: #41add8; /* Matching your React logo orange/yellow */
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+}
+
+.info-panel-overlay p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #cccccc;
+    margin: 0;
+}
+
+/* --- THE SLIDE IN ANIMATION --- */
+.info-panel-content {
+    animation: fadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

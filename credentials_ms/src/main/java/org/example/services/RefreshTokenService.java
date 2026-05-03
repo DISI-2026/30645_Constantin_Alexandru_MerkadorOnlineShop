@@ -33,6 +33,13 @@ public class RefreshTokenService {
         return token;
     }
 
+    public RefreshToken validateAndGetToken(String token) {
+        return refreshTokenRepository.findByToken(token)
+                .filter(t -> !t.isRevoked())
+                .filter(t -> t.getExpiresAt().isAfter(LocalDateTime.now()))
+                .orElseThrow(() -> new IllegalArgumentException("Invalid, expired, or revoked refresh token"));
+    }
+
     @Transactional
     public void revokeToken(String token) {
         refreshTokenRepository.findByToken(token).ifPresent(t -> {

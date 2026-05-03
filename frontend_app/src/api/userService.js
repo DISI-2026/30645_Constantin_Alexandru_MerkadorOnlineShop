@@ -1,50 +1,32 @@
 // src/api/userService.js
 
-// fetchWrapper must be imported to handle JWT injection and 401 redirection
 import { fetchWrapper } from '../utils/fetchWrapper';
 
 const BASE_URL = '/api/users';
 
 /**
- * Retrieves a list of all users (Protected: requires ADMIN/JWT).
- * @returns {Promise<Array<Object>>} List of user objects.
+ * Retrieves a list of all users.
+ * Matches: GET /users
  */
 export const getAllUsers = async () => {
-    // Calls: /api/users
     return fetchWrapper(BASE_URL, { method: 'GET' });
 };
 
 /**
- * Retrieves a user by their full name (Protected: requires JWT).
- * @param {string} fullName - The full name of the user to search for.
- * @returns {Promise<Object>} The user object.
+ * Retrieves a user by their UUID.
+ * Matches: GET /users/{id}
  */
-export const getUserByFullName = async (fullName) => {
-    // Calls: /api/users/{fullName}
-    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(fullName)}`, { method: 'GET' });
-};
-
-/**
- * Creates a new user (PUBLIC (no token required): can be used for future registration feature, but currently only admin creates users).
- * @param {Object} userData - User details (fullName, email, username, password, role).
- */
-export const createUser = async (userData) => {
-    // Calls: /api/users/add
-    return fetch(`${BASE_URL}/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
-    });
+export const getUserById = async (id) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}`, { method: 'GET' });
 };
 
 /**
  * Updates an existing user's details.
- * @param {string} id - UUID of the user.
- * @param {Object} updateData - User details including newPassword (optional).
+ * Matches: PUT /users/{id}/update
+ * Note: Ensure updateData matches your UserProfileReqDTO (e.g., { firstName: "...", lastName: "..." })
  */
 export const updateUser = async (id, updateData) => {
-    // Calls: /api/users/{id}/update
-    return fetchWrapper(`${BASE_URL}/${id}/update`, {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -52,15 +34,17 @@ export const updateUser = async (id, updateData) => {
 };
 
 /**
- * Deletes a user by ID.
- * @param {string} id - UUID of the user.
+ * Uploads an avatar image for a user.
+ * Matches: POST /users/{id}/avatar
  */
-export const deleteUser = async (id) => {
-    // Calls: /api/users/{id}/delete
-    return fetchWrapper(`${BASE_URL}/${id}/delete`, {
-        method: 'DELETE',
+export const uploadAvatar = async (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Note: Do not set 'Content-Type': 'application/json' or 'multipart/form-data'.
+    // The browser sets the correct multipart boundary automatically when using FormData.
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/avatar`, {
+        method: 'POST',
+        body: formData,
     });
 };
-
-
-
