@@ -1,0 +1,240 @@
+.admin-categories-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(13, 110, 253, 0.12), transparent 34%),
+    #f5f7fb;
+  color: #111827;
+}
+
+.admin-categories-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 28px 5%;
+}
+
+.admin-categories-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  border-radius: 28px;
+  padding: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+  margin-bottom: 24px;
+}
+
+.admin-categories-badge {
+  display: inline-flex;
+  background: rgba(59, 130, 246, 0.18);
+  color: #bfdbfe;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  margin-bottom: 14px;
+}
+
+.admin-categories-hero h1 {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 900;
+}
+
+.admin-categories-hero p {
+  margin: 12px 0 0;
+  color: #cbd5e1;
+  max-width: 780px;
+}
+
+.admin-categories-hero button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-categories-hero button:hover {
+  background: #1d4ed8;
+}
+
+.admin-categories-layout {
+  display: grid;
+  grid-template-columns: 390px 1fr;
+  gap: 24px;
+}
+
+.admin-category-form,
+.admin-category-list {
+  background: white;
+  border-radius: 24px;
+  padding: 26px;
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.admin-category-form h2,
+.admin-category-list h2 {
+  margin: 0 0 18px;
+  color: #111827;
+  font-weight: 900;
+}
+
+.admin-category-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-self: start;
+}
+
+.admin-category-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.admin-category-form input,
+.admin-category-form textarea {
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #111827;
+  border-radius: 14px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.admin-category-form textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.admin-category-form input:focus,
+.admin-category-form textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.admin-category-slug-row {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-category-slug-row input {
+  flex: 1;
+}
+
+.admin-category-slug-row button {
+  border: none;
+  background: #e2e8f0;
+  color: #334155;
+  border-radius: 14px;
+  padding: 0 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-category-submit {
+  border: none;
+  background: #16a34a;
+  color: white;
+  border-radius: 14px;
+  padding: 13px 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-category-submit:hover {
+  background: #15803d;
+}
+
+.admin-category-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.admin-category-list-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.admin-category-list-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+
+.admin-category-empty {
+  color: #64748b;
+}
+
+.admin-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-category-card {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-category-card h3 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-weight: 900;
+}
+
+.admin-category-card p {
+  margin: 0 0 10px;
+  color: #64748b;
+}
+
+.admin-category-card span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.admin-category-card button {
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-weight: 800;
+  cursor: pointer;
+  align-self: start;
+}
+
+.admin-category-card button:hover {
+  background: #fecaca;
+}
+
+@media (max-width: 1000px) {
+  .admin-categories-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-categories-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-category-slug-row {
+    flex-direction: column;
+  }
+}

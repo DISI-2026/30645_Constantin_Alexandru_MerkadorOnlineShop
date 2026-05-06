@@ -35,6 +35,10 @@ export const fetchWrapper = async (url, options = {}) => {
         headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
+    if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     const doFetch = async () => {
         return fetch(url, { ...options, headers });
     };
@@ -126,13 +130,31 @@ export const fetchWrapper = async (url, options = {}) => {
             }
         }
 
+        const contentType = response.headers.get('content-type') || '';
+        const text = await response.text();
+
+        const parseJson = () => {
+            if (!text) return null;
+            if (!contentType.includes('application/json')) {
+                throw new Error(
+                    `Expected JSON, but received ${contentType || 'unknown content type'} from ${response.url}. ` +
+                    `First characters: ${text.slice(0, 80)}`
+                );
+            }
+            return JSON.parse(text);
+        };
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            let errorData = {};
+            try {
+                errorData = parseJson() || {};
+            } catch (_) {
+                // Keep the real HTTP status if the backend/proxy returned HTML or plain text.
+            }
             throw new Error(errorData.message || `API call failed with status ${response.status}`);
         }
 
-        const text = await response.text();
-        return text ? JSON.parse(text) : null;
+        return parseJson();
 
     } catch (error) {
         if (error.message !== 'Unauthorized or expired token.') {

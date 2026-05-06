@@ -1,60 +1,95 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
+import '../styles/SellerPage.css';
 
 const SellerPage = () => {
-    const [tab, setTab] = useState('shop');
+  const [tab, setTab] = useState('shop');
 
-    const tabStyle = (isActive) => ({
-        padding: '1rem 2rem',
-        border: 'none',
-        borderBottom: isActive ? '3px solid #e67e22' : '3px solid transparent', // Portocaliu pentru seller
-        background: 'transparent',
-        cursor: 'pointer',
-        fontWeight: isActive ? 700 : 500,
-        fontSize: '1.1rem',
-        color: isActive ? '#d35400' : '#6c757d',
-        transition: 'all 0.2s ease',
-    });
+  const tabStyle = (isActive) => ({
+    padding: '1rem 2rem',
+    border: 'none',
+    borderBottom: isActive ? '3px solid #e67e22' : '3px solid transparent',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontWeight: isActive ? 700 : 500,
+    fontSize: '1.1rem',
+    color: isActive ? '#d35400' : '#6c757d',
+    transition: 'all 0.2s ease',
+  });
 
-    return (
-        <div style={{ minHeight: '100vh', width: '100vw', backgroundColor: '#f4f6f8', margin: 0, padding: 0, color: '#333', textAlign: 'left' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 5%' }}>
+  return (
+    <div className="seller-page">
+      <div className="seller-page-container">
+        <MainNavbar pageTitle="Seller Dashboard" />
 
-                <MainNavbar pageTitle="Seller Dashboard" />
+        <section className="seller-page-hero">
+          <div>
+            <span className="seller-page-badge">Seller mode</span>
+            <h1>Manage your shop</h1>
+            <p>
+              From here, you can manage your business profile, listed products,
+              stock, prices, images, and incoming customer orders.
+            </p>
+          </div>
 
-                {/* Main Content Card */}
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.05)', padding: '2rem', marginTop: '1rem', minHeight: '60vh' }}>
+          <Link to="/seller/products" className="seller-page-primary-btn">
+            Manage products
+          </Link>
+        </section>
 
-                    {/* Tabs */}
-                    <div style={{ borderBottom: '1px solid #e1e1e1', marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
-                        <button style={tabStyle(tab === 'shop')} onClick={() => setTab('shop')}>Shop Profile</button>
-                        <button style={tabStyle(tab === 'inventory')} onClick={() => setTab('inventory')}>My Products</button>
-                        <button style={tabStyle(tab === 'sales')} onClick={() => setTab('sales')}>Sales & Orders</button>
-                    </div>
+        <div className="seller-main-card">
+          <div className="seller-tabs">
+            <button style={tabStyle(tab === 'shop')} onClick={() => setTab('shop')}>
+              Shop Profile
+            </button>
 
-                    {/* Content */}
-                    {tab === 'shop' && (
-                        <div>
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Shop Configuration</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>Here the seller updates shopName, shopSlug, description, and sees verification status.</p>
-                        </div>
-                    )}
-                    {tab === 'inventory' && (
-                        <div>
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Inventory Management</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>Add, edit, or remove products to sell.</p>
-                        </div>
-                    )}
-                    {tab === 'sales' && (
-                        <div>
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Incoming Orders</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>Manage orders placed by buyers for your products.</p>
-                        </div>
-                    )}
-                </div>
+            <button style={tabStyle(tab === 'inventory')} onClick={() => setTab('inventory')}>
+              My Products
+            </button>
+
+            <button style={tabStyle(tab === 'sales')} onClick={() => setTab('sales')}>
+              Sales & Orders
+            </button>
+          </div>
+
+          {tab === 'shop' && (
+            <div className="seller-tab-content">
+              <h2>Shop Configuration</h2>
+              <p>
+                Here, sellers will be able to update their shop name, description,
+                logo, and verification status.
+              </p>
             </div>
+          )}
+
+          {tab === 'inventory' && (
+            <div className="seller-tab-content">
+              <h2>Inventory Management</h2>
+              <p>
+                Manage your products, upload images, update stock levels, change
+                prices, and activate or deactivate listings.
+              </p>
+
+              <Link to="/seller/products" className="seller-inventory-btn">
+                Go to my products
+              </Link>
+            </div>
+          )}
+
+          {tab === 'sales' && (
+            <div className="seller-tab-content">
+              <h2>Incoming Orders</h2>
+              <p>
+                Here, sellers will be able to view and manage orders received
+                from buyers.
+              </p>
+            </div>
+          )}
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default SellerPage;

@@ -1,6 +1,7 @@
 package com.merkador.productservice.infrastructure.persistence.adapter;
 
 import com.merkador.productservice.core.domain.Product;
+import com.merkador.productservice.core.exception.ResourceNotFoundException;
 import com.merkador.productservice.core.port.in.ProductFilter;
 import com.merkador.productservice.core.port.out.ProductRepository;
 import com.merkador.productservice.infrastructure.persistence.entity.ProductEntity;
@@ -56,7 +57,9 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public void deleteById(UUID id) {
-        jpa.deleteById(id);
+        ProductEntity entity = jpa.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", id));
+        jpa.delete(entity);
     }
 
     private Sort buildSort(ProductFilter filter) {

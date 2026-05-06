@@ -83,11 +83,13 @@ public class ProductService implements ProductUseCase {
     @Transactional
     public void deleteProduct(UUID id, UUID sellerId) {
         Product product = findOwnedOrThrow(id, sellerId);
-        product.markDeleted();
-        productRepository.save(product);
+
+        productRepository.deleteById(id);
+
         esOutboxRepository.enqueue(id, "DELETE");
         eventPublisher.publishProductDeleted(new ProductDeletedEvent(id, sellerId));
-        log.info("Soft-deleted product id={}", id);
+
+        log.info("Hard-deleted product id={}", id);
     }
 
     @Override
