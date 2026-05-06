@@ -58,6 +58,19 @@ const MainNavbar = ({ pageTitle }) => {
                     </div>
                 )}
 
+                <Link to="/browse" style={{textDecoration: 'none'}}>
+                    <button className="action-button" style={{
+                        backgroundColor: '#34db90',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        cursor: 'pointer',
+                        borderRadius: '6px'
+                    }}>
+                        Browse
+                    </button>
+                </Link>
+
                 <Link to="/" style={{textDecoration: 'none'}}>
                     <button className="action-button" style={{
                         backgroundColor: '#3498db',

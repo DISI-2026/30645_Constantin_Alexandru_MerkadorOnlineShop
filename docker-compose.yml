@@ -72,7 +72,7 @@ services:
     build: ./user_ms
     container_name: user-ms
     volumes:
-      - ./upload_data:/app/uploads # Mount local directory for user uploads (like avatars)
+      - ./upload_data:/upload_data # Mount local directory for user uploads (like avatars)
     ports:
       - "8082:8082" # Optional for direct testing
     environment:
@@ -141,7 +141,7 @@ services:
       - "traefik.http.middlewares.forward-auth.forwardauth.trustForwardHeader=true"
 
       # --- Public routes (no JWT) ---
-      - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`)"
+      - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`) || PathPrefix(`/api/credentials/reactivate-account`)"
       - "traefik.http.routers.credential-public.service=credential"
       - "traefik.http.routers.credential-public.middlewares=strip-api, cors-frontend"
       - "traefik.http.routers.credential-public.entrypoints=web"

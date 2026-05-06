@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -39,14 +41,16 @@ public class UserProfileController {
     }
 
     @PostMapping("/{id}/avatar")
-    public ResponseEntity<String> uploadAvatar(@PathVariable UUID id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+    public ResponseEntity<Map<String, String>> uploadAvatar(@PathVariable UUID id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         String avatarUrl = userProfileService.uploadAvatar(id, file);
-        return ResponseEntity.ok(avatarUrl);
+        // return as a valid JSON
+        return ResponseEntity.ok(Collections.singletonMap("avatarUrl", avatarUrl));
     }
 
     // ==========================================
     // SELLER ROUTES
     // ==========================================
+
     @GetMapping("/{id}/seller-profile")
     public ResponseEntity<SellerProfileRespDTO> getSellerProfile(@PathVariable UUID id) {
         return ResponseEntity.ok(userProfileService.getSellerProfile(id));
@@ -63,9 +67,15 @@ public class UserProfileController {
         return ResponseEntity.ok(userProfileService.getUnverifiedSellers());
     }
 
+    @PutMapping("/{id}/seller-profile/update")
+    public ResponseEntity<Void> updateSellerProfile(@PathVariable UUID id, @Valid @RequestBody SellerProfileReqDTO dto) {
+        userProfileService.createOrUpdateSellerProfile(id, dto);
+        return ResponseEntity.ok().build();
+    }
+
     @PatchMapping("/{id}/seller-profile/verify")
-    public ResponseEntity<Void> verifySeller(@PathVariable UUID id) {
-        userProfileService.verifySellerProfile(id);
+    public ResponseEntity<Void> verifySeller(@PathVariable UUID id, @Valid @RequestBody VerifySellerReqDTO body) {
+        userProfileService.verifySellerProfile(id, body.getAuthorizedCategories());
         return ResponseEntity.noContent().build();
     }
 
@@ -76,6 +86,11 @@ public class UserProfileController {
     @GetMapping("/{id}/addresses")
     public ResponseEntity<List<AddressBookRespDTO>> getUserAddresses(@PathVariable UUID id) {
         return ResponseEntity.ok(userProfileService.getUserAddresses(id));
+    }
+
+    @GetMapping("/{id}/default_address")
+    public ResponseEntity<AddressBookRespDTO> getDefaultUserAddress(@PathVariable UUID id) {
+        return ResponseEntity.ok(userProfileService.getDefaultUserAddress(id));
     }
 
     @PostMapping("/{id}/addresses")

@@ -96,10 +96,19 @@ export const fetchWrapper = async (url, options = {}) => {
                     pendingQueue = [];
 
                 } catch (refreshErr) {
-                    // On refresh failure, logout
+                    // On refresh failure, logout and redirect based on status
                     if (configuredLogout && configuredNavigate) {
                         configuredLogout();
-                        configuredNavigate('/login', { replace: true });
+
+                        if (refreshErr.resource === 'PENDING_VERIFICATION') {
+                            configuredNavigate('/verify', { replace: true });
+                        } else if (refreshErr.resource === 'SUSPENDED') {
+                            configuredNavigate('/home', { state: { showSuspendedAlert: true }});
+                        } else if (refreshErr.resource === 'DEACTIVATED') {
+                            configuredNavigate('/reactivate-account', { replace: true });
+                        } else {
+                            configuredNavigate('/login', { replace: true });
+                        }
                     }
                     // Reject all queued requests
                     pendingQueue.forEach((p) => p.reject(refreshErr));

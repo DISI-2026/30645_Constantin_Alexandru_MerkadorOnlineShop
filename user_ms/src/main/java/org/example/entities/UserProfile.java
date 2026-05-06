@@ -7,9 +7,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 // This entity represents the profile of a user
 @Entity
@@ -45,6 +43,11 @@ public class UserProfile implements Serializable {
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AddressBook> addresses = new ArrayList<>();
+
+    @ElementCollection
+    @CollectionTable(name = "preferred_categories", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "category_slug")
+    private Set<String> preferredCategories = new HashSet<>();
 
     public UserProfile(){}
 
@@ -128,5 +131,13 @@ public class UserProfile implements Serializable {
 
     public void setAddresses(List<AddressBook> addresses) {
         this.addresses = addresses;
+    }
+
+    public Set<String> getPreferredCategories() {
+        return preferredCategories;
+    }
+
+    public void setPreferredCategories(Set<String> preferredCategories) {
+        this.preferredCategories = preferredCategories;
     }
 }
