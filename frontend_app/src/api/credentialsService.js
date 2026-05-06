@@ -1,74 +1,146 @@
 // src/api/credentialsService.js
-
 import { fetchWrapper } from '../utils/fetchWrapper';
 
 const BASE_URL = '/api/credentials';
 
-// Auth Endpoints
-// Login: POST /credentials/login { email, password }
+// ==========================================
+// PUBLIC ENDPOINTS
+// ==========================================
+
+export const register = async ({ email, password, firstName, lastName }) => {
+    const response = await fetch(`${BASE_URL}/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, firstName, lastName }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Registration failed.');
+    }
+    return response.json().catch(() => ({}));
+};
+
 export const login = async (email, password) => {
     const response = await fetch(`${BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
-
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // Throw the raw object so we can read errorData.resource in the UI
-        throw new Error(errorData.message || 'Login failed. Please try again.');
+        const error = new Error(errorData.message || 'Login failed. Please try again.');
+        error.resource = errorData.resource;
+        throw error;
     }
-
     return response.json();
 };
 
-// Register: POST /credentials/add { email, password, firstName, lastName }
-export const register = async ({ email, password, firstName, lastName }) => {
-  const response = await fetch(`${BASE_URL}/add`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, firstName, lastName }),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || 'Registration failed.');
-  }
-  return response.json().catch(() => ({}));
-};
-
-// Activate Account: POST /credentials/activate?email=E&code=C
 export const activate = async (email, code) => {
-  return fetchWrapper(`${BASE_URL}/activate?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`, {
-    method: 'POST',
-  });
+    return fetchWrapper(`${BASE_URL}/activate?email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}`, {
+        method: 'POST',
+    });
 };
 
-// Resend Code: POST /credentials/resend-code?email=E
 export const resendCode = async (email) => {
-  return fetchWrapper(`${BASE_URL}/resend-code?email=${encodeURIComponent(email)}`, {
-    method: 'POST',
-  });
+    return fetchWrapper(`${BASE_URL}/resend-code?email=${encodeURIComponent(email)}`, {
+        method: 'POST',
+    });
 };
 
-// Forgot Password: POST /credentials/forgot-password?email=E
 export const forgotPassword = async (email) => {
-  return fetchWrapper(`${BASE_URL}/forgot-password?email=${encodeURIComponent(email)}`, {
-    method: 'POST',
-  });
+    return fetchWrapper(`${BASE_URL}/forgot-password?email=${encodeURIComponent(email)}`, {
+        method: 'POST',
+    });
 };
 
-// Reset Password: POST /credentials/reset-password?token=T  body: { newPassword }
 export const resetPassword = async (token, newPassword) => {
-  return fetchWrapper(`${BASE_URL}/reset-password?token=${encodeURIComponent(token)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ newPassword }),
-  });
+    return fetchWrapper(`${BASE_URL}/reset-password?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+    });
 };
 
-// Logout: POST /credentials/logout?refreshToken=...
+export const reactivate = async (email) => {
+    return fetchWrapper(`${BASE_URL}/reactivate-account?email=${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+    });
+};
+
+// ==========================================
+// PRIVATE ENDPOINTS - USER
+// ==========================================
+
 export const logout = async (refreshToken) => {
-  return fetchWrapper(`${BASE_URL}/logout?refreshToken=${encodeURIComponent(refreshToken)}`, {
-    method: 'POST',
-  });
+    return fetchWrapper(`${BASE_URL}/logout?refreshToken=${encodeURIComponent(refreshToken)}`, {
+        method: 'POST',
+    });
+};
+
+export const deactivate = async (email) => {
+    return fetchWrapper(`${BASE_URL}/deactivate-account?email=${encodeURIComponent(email)}`, {
+        method: 'PATCH',
+    });
+};
+
+export const switchRole = async (email, targetRole) => {
+    return fetchWrapper(`${BASE_URL}/switch-role`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, targetRole }),
+    });
+};
+
+export const changePassword = async (id, oldPassword, newPassword) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword }),
+    });
+};
+
+export const requestEmailUpdate = async (id, newEmail) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/email-update-request?newEmail=${encodeURIComponent(newEmail)}`, {
+        method: 'POST',
+    });
+};
+
+export const confirmEmailUpdate = async (id, code) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/email-update-confirm?code=${encodeURIComponent(code)}`, {
+        method: 'POST',
+    });
+};
+
+// ==========================================
+// PRIVATE ENDPOINTS - ADMIN
+// ==========================================
+
+export const getAllCredentials = async () => {
+    return fetchWrapper(BASE_URL, { method: 'GET' });
+};
+
+export const getCredentialById = async (id) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}`, { method: 'GET' });
+};
+
+export const getCredentialByEmail = async (email) => {
+    return fetchWrapper(`${BASE_URL}/email/${encodeURIComponent(email)}`, { method: 'GET' });
+};
+
+export const updateCredentialStatus = async (id, newStatus) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/status?newStatus=${encodeURIComponent(newStatus)}`, {
+        method: 'PUT',
+    });
+};
+
+export const addCredentialRole = async (id, newRole) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/role?newRole=${encodeURIComponent(newRole)}`, {
+        method: 'POST',
+    });
+};
+
+export const deleteCredential = async (id) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/delete`, {
+        method: 'DELETE',
+    });
 };

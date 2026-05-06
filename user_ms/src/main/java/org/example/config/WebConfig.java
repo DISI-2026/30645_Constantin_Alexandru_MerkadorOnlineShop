@@ -9,8 +9,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Mapam ruta URL "/uploads/**" catre folderul fizic "uploads/" de pe discul aplicatiei
+        // Mapam ruta URL "users/uploads/**" catre folderul fizic "app/uploads/" din containerul acestui microserviciu
         registry.addResourceHandler("/users/uploads/**")
-                .addResourceLocations("file:/app/uploads/");
+                .addResourceLocations("file:/upload_data/");
     }
 }

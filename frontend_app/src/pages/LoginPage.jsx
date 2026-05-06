@@ -27,9 +27,14 @@ const LoginPage = () => {
     } catch (err) {
         // Check for backend's specific ExceptionHandlerResponseDTO format
         if (err.resource === 'PENDING_VERIFICATION') {
-            // Redirect to verification page and pass the email in the route state
-            // (Assuming your route is '/verify')
-            navigate('/verify', { state: { email } });
+            navigate(`/verify?email=${encodeURIComponent(email)}`);
+
+        } else if (err.resource === 'SUSPENDED') {
+            navigate('/home', { state: { showSuspendedAlert: true } });
+
+        } else if (err.resource === 'DEACTIVATED') {
+            navigate('/reactivate-account', { state: { email } });
+
         } else {
             // Fallback to error message
             setError(err.message || 'Invalid credentials. Please try again.');

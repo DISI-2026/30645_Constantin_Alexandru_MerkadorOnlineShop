@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
-import { login as apiLogin, logout as apiLogout } from '../api/credentialsService.js';
+import { login as apiLogin, logout as apiLogout, switchRole as apiSwitchRole } from '../api/credentialsService.js';
 import { getUserById } from '../api/userService.js';
 
 const AuthContext = createContext(null);
@@ -129,17 +129,37 @@ export const AuthProvider = ({ children }) => {
     setLastName(null);
   };
 
-  const switchRole = (newRole, navigate) => {
-    if (!roles.includes(newRole)) {
-        console.warn(`The user doesn't have ${newRole} rights.`);
-        return;
+  const switchRole = async (targetRole) => {
+    try {
+        // request a new token with the new role
+        const response = await apiSwitchRole(email, targetRole);
+
+        // get new token
+        const newJwt = response.token;
+        if (!newJwt) {
+            throw new Error("No token received from backend");
+        }
+
+        // save to localStorage
+        localStorage.setItem(ACCESS_TOKEN_KEY, newJwt);
+        localStorage.setItem(ACTIVE_ROLE_KEY, targetRole);
+
+        // No need to explicitly update state here,
+        // because AuthContext.Provider will re-render with the new token.
+
+        // Hard redirect to the new role's page to avoid state delay
+        if (targetRole === 'BUYER') {
+            window.location.href = '/buyer';
+        } else if (targetRole === 'SELLER') {
+            window.location.href = '/seller';
+        } else if (targetRole === 'ADMIN') {
+            window.location.href = '/admin';
+        }
+
+    } catch (error) {
+        console.error("Failed to switch role:", error);
+        alert("Could not switch role. Please try again.");
     }
-
-    setActiveRoleState(newRole);
-
-    if (newRole === 'ADMIN') navigate('/admin');
-    else if (newRole === 'BUYER') navigate('/buyer');
-    else if (newRole === 'SELLER') navigate('/seller');
   };
 
   const decoded = useMemo(() => (accessToken ? decodeJwt(accessToken) : {}), [accessToken]);

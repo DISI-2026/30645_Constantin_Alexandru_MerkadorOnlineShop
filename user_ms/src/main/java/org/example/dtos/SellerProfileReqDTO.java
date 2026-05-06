@@ -1,6 +1,5 @@
 package org.example.dtos;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 
 public class SellerProfileReqDTO {

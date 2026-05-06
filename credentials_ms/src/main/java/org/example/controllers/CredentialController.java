@@ -13,10 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/credentials")
@@ -87,6 +84,12 @@ public class CredentialController {
         }
     }
 
+    @PatchMapping("/reactivate-account")
+    public ResponseEntity<Void> reactivateAccount(@RequestParam String email) {
+        credentialService.reactivateAccount(email);
+        return ResponseEntity.ok().build();
+    }
+
     // ==========================================
     // 2. RUTE PRIVATE - UTILIZATOR
     // ==========================================
@@ -97,10 +100,17 @@ public class CredentialController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/deactivate-account")
+    public ResponseEntity<Void> deactivateAccount(@RequestParam String email) {
+        credentialService.deactivateAccount(email);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/switch-role")
-    public ResponseEntity<String> switchRole(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> switchRole(@RequestBody Map<String, String> body) {
         String newJwt = credentialService.switchRole(body.get("email"), body.get("targetRole"));
-        return ResponseEntity.ok(newJwt);
+        // return as a simple JSON with the new token
+        return ResponseEntity.ok(Collections.singletonMap("token", newJwt));
     }
 
     @PutMapping("/{id}/password")
@@ -134,6 +144,11 @@ public class CredentialController {
     @GetMapping("/{id}")
     public ResponseEntity<CredentialRespDTO> getCredentialById(@PathVariable UUID id) {
         return ResponseEntity.ok().body(credentialService.findCredentialById(id));
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<CredentialRespDTO> getCredentialByEmail(@PathVariable String email) {
+        return ResponseEntity.ok().body(credentialService.findCredentialByEmail(email));
     }
 
     @PutMapping("/{id}/status")

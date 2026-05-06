@@ -171,6 +171,20 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, body, new HttpHeaders(), status, request);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        var body = new ExceptionHandlerResponseDTO(
+                "Invalid Argument",
+                status.getReasonPhrase(),
+                status.value(),
+                IllegalArgumentException.class.getSimpleName(),
+                List.of(ex.getMessage()),
+                request.getDescription(false)
+        );
+        return handleExceptionInternal(ex, body, new HttpHeaders(), status, request);
+    }
+
     @ExceptionHandler(CustomException.class)
     protected ResponseEntity<Object> handleCustomExceptions(CustomException ex, WebRequest request) {
         var body = new ExceptionHandlerResponseDTO(

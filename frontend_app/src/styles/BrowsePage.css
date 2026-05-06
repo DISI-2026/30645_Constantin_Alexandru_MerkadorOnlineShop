@@ -1,0 +1,35 @@
+/* src/styles/BrowsePage.css */
+
+.browse-page-wrapper {
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #f4f6f8;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+.browse-page-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 5%;
+}
+
+.browse-content-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    padding: 2rem;
+    margin-top: 1rem;
+    min-height: 70vh;
+}
+
+.browse-section-title {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.browse-section-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+}

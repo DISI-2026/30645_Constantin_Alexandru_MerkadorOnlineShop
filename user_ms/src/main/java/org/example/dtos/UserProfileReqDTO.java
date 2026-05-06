@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+import java.util.Set;
+
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserProfileReqDTO {
@@ -20,13 +22,16 @@ public class UserProfileReqDTO {
     @Size(max = 16, message = "Phone number too long")
     private String phone;
 
+    Set<String> preferredCategories;
+
     public UserProfileReqDTO(){}
 
-    public UserProfileReqDTO(String phone, String avatarUrl, String lastName, String firstName) {
+    public UserProfileReqDTO(String phone, String avatarUrl, String lastName, String firstName, Set<String> preferredCategories) {
         this.phone = phone;
         this.avatarUrl = avatarUrl;
         this.lastName = lastName;
         this.firstName = firstName;
+        this.preferredCategories = preferredCategories;
     }
 
     public String getFirstName() {
@@ -59,5 +64,13 @@ public class UserProfileReqDTO {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public Set<String> getPreferredCategories() {
+        return preferredCategories;
+    }
+
+    public void setPreferredCategories(Set<String> preferredCategories) {
+        this.preferredCategories = preferredCategories;
     }
 }

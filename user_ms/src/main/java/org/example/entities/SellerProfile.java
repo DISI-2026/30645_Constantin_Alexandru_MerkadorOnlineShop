@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -52,6 +54,11 @@ public class SellerProfile {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ElementCollection
+    @CollectionTable(name = "authorized_categories", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "category_slug")
+    private Set<String> authorizedCategories = new HashSet<>();
+
     public SellerProfile() {}
 
     // Getters & Setters
@@ -73,4 +80,6 @@ public class SellerProfile {
     public void setVerified(Boolean verified) { this.verified = verified; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Set<String> getAuthorizedCategories() { return authorizedCategories; }
+    public void setAuthorizedCategories(Set<String> authorizedCategories) { this.authorizedCategories = authorizedCategories; }
 }

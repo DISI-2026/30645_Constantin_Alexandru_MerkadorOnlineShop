@@ -44,7 +44,7 @@ public class UserSyncConsumer {
     private void handleUserCreated(UserSyncMessage message) {
         LOGGER.info("Creating profile for user ID: {}", message.getUserId());
 
-        // Verificăm dacă nu există deja (idempotentă)
+        // Verificăm dacă nu există deja
         if (userProfileRepository.existsById(message.getUserId())) {
             LOGGER.warn("User profile already exists for ID: {}", message.getUserId());
             return;

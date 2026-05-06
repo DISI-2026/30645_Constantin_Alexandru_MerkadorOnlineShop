@@ -36,8 +36,8 @@ public class LocalAvatarStorageAdapter implements AvatarStoragePort {
 
             file.transferTo(destinationFile);
 
-            // Returnăm o cale falsă/relativă pe care Frontend-ul sau Traefik o poate accesa
-            return "/uploads/avatars/" + filename;
+            // Returnăm o cale falsă/relativă pe care Frontend-ul o poate accesa
+            return "/api/users/uploads/avatars/" + filename;
         } catch (IOException e) {
             throw new RuntimeException("Could not save avatar: ", e);
         }

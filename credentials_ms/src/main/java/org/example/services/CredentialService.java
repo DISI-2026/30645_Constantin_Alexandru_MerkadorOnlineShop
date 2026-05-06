@@ -8,6 +8,7 @@ import org.example.dtos.CredentialRespDTO;
 import org.example.dtos.builders.CredentialBuilder;
 import org.example.entities.*;
 import org.example.handlers.exceptions.model.AccountNotActiveException;
+import org.example.handlers.exceptions.model.MessageSyncException;
 import org.example.handlers.exceptions.model.ResourceNotFoundException;
 import org.example.repositories.CredentialRepository;
 import org.example.repositories.CredentialVerificationRepository;
@@ -99,7 +100,7 @@ public class CredentialService {
             userSyncProducer.sendUserCreatedEvent(credential.getId(), dto);
         } catch (Exception e) {
             LOGGER.error("Failed to send sync message to User MS. Rolling back.", e);
-            throw new RuntimeException("Registration failed, please try again");
+            throw new MessageSyncException("Registration failed due to internal sync error, please try again");
         }
 
         return credential.getId();
@@ -155,6 +156,37 @@ public class CredentialService {
         String newAccessToken = jwtService.generateToken(user.getEmail(), user.getId(), activeRole, roles);
 
         return new AuthDTO(newAccessToken, refreshTokenStr, user.getId(), user.getEmail(), activeRole, roles);
+    }
+
+    @Transactional
+    public void reactivateAccount(String email) {
+        Credential credential = credentialRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(email));
+
+        credential.setStatus(AccountStatus.PENDING_VERIFICATION); // Setăm statusul la PENDING_VERIFICATION pentru a forța utilizatorul să treacă din nou prin procesul de verificare
+        
+        // Trimitem un nou cod de verificare și emailul de activare
+        CredentialVerification verification = credential.getVerificationData();
+        if (verification == null) {
+            verification = new CredentialVerification(credential);
+            credential.setVerificationData(verification);
+        }
+        verification.generateNewCode();
+        
+        // Salvam si trimitem emailul
+        credentialRepository.save(credential);
+        emailService.sendVerificationEmail(credential.getEmail(), verification.getVerificationCode());
+
+        LOGGER.info("Account reactivated successfully for user {}", credential.getId());
+    }
+
+    public void deactivateAccount(String email) {
+        Credential credential = credentialRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(email));
+
+        credential.setStatus(AccountStatus.DEACTIVATED);
+        credentialRepository.save(credential);
+        LOGGER.info("Account deactivated successfully for user {}", credential.getId());
     }
 
     public void logout(String refreshToken) {
@@ -340,7 +372,7 @@ public class CredentialService {
             userSyncProducer.sendUserDeletedEvent(id);
         }catch (Exception e){
             LOGGER.error("Failed to send sync message to User MS. Rolling back.", e);
-            throw new RuntimeException("Deletion failed, please try again");
+            throw new MessageSyncException("Deletion failed due to internal sync error, please try again");
         }
     }
 }

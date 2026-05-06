@@ -1,0 +1,61 @@
+/* src/styles/BrowseNavbar.css */
+
+.browse-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 2rem;
+}
+
+.browse-title {
+    font-size: 2.5rem;
+    color: #34495e;
+    margin: 0;
+}
+
+.browse-nav-buttons {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.browse-action-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.2s ease;
+}
+
+.browse-dashboard-btn {
+    background-color: #f39c12; /* Orange for dashboard link */
+    color: white;
+}
+
+.browse-dashboard-btn:hover {
+    background-color: #e67e22;
+}
+
+.browse-home-btn {
+    background-color: #3498db; /* Blue for Home */
+    color: white;
+}
+
+.browse-home-btn:hover {
+    background-color: #2980b9;
+}
+
+.browse-logout-btn {
+    background-color: #e74c3c; /* Red for Logout */
+    color: white;
+}
+
+.browse-logout-btn:hover {
+    background-color: #c0392b;
+}

@@ -17,9 +17,11 @@ import NotFoundPage from './pages/NotFoundPage';
 import ForgotPasswordEmailPage from './pages/ForgotPasswordEmailPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import VerificationPage from './pages/VerificationPage.jsx';
+import ReactivatePage from "./pages/ReactivatePage.jsx";
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
+import BrowsePage from "./pages/BrowsePage.jsx";
 
 // Component to configure the fetchWrapper with imperative functions
 const AppConfigurator = ({ children }) => {
@@ -54,6 +56,7 @@ const App = () => (
                     <Route path="/verify" element={<VerificationPage />} />
                     <Route path="/forgot-password" element={<ForgotPasswordEmailPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/reactivate-account" element={<ReactivatePage />} />
 
                     {/* PROTECTED ROUTES */}
                     <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
@@ -66,6 +69,10 @@ const App = () => (
 
                     <Route element={<ProtectedRoute allowedRoles={["SELLER"]} />}>
                         <Route path="/seller" element={<SellerPage />} />
+                    </Route>
+
+                    <Route element={<ProtectedRoute allowedRoles={['BUYER', 'SELLER', 'ADMIN']} />}>
+                        <Route path="/browse" element={<BrowsePage />} />
                     </Route>
 
                     {/* 404 */}

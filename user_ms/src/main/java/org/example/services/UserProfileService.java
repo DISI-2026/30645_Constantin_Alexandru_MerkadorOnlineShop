@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -61,6 +63,8 @@ public class UserProfileService {
         // we keep the old data if any, if the current edits are null
         if (dto.getPhone() != null) userProfile.setPhone(dto.getPhone());
         if (dto.getAvatarUrl() != null) userProfile.setAvatarUrl(dto.getAvatarUrl());
+        if(dto.getPreferredCategories() != null && dto.getPreferredCategories().size() > 0)
+            userProfile.setPreferredCategories(dto.getPreferredCategories());
 
         // updatedDate will automatically be set by Spring Data
         userProfileRepository.save(userProfile);
@@ -136,13 +140,14 @@ public class UserProfileService {
     }
 
     @Transactional
-    public void verifySellerProfile(UUID userId) {
+    public void verifySellerProfile(UUID userId, Set<String> authorizedCategories) {
         SellerProfile sellerProfile = sellerProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("No seller profile was found for user with id = " + userId));
 
+        sellerProfile.setAuthorizedCategories(authorizedCategories);
         sellerProfile.setVerified(true);
         sellerProfileRepository.save(sellerProfile);
-        LOGGER.info("Seller profile has been verified: ", userId);
+        LOGGER.info("Seller profile has been verified: {}", userId);
     }
 
     // ==========================================
@@ -162,6 +167,23 @@ public class UserProfileService {
                     dto.setIsDefault(addr.getIsDefault());
                     return dto;
                 }).collect(Collectors.toList());
+    }
+
+    public AddressBookRespDTO getDefaultUserAddress(UUID userId) {
+        AddressBook ad = addressBookRepository.findByUserProfileUserIdAndIsDefaultTrue(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("No default address found for user: " + userId));
+
+        AddressBookRespDTO dto = new AddressBookRespDTO();
+
+        dto.setId(ad.getId());
+        dto.setUserId(userId);
+        dto.setLabel(ad.getLabel());
+        dto.setAddressLine(ad.getAddressLine());
+        dto.setCity(ad.getCity());
+        dto.setCountry(ad.getCountry());
+        dto.setPostalCode(ad.getPostalCode());
+        dto.setIsDefault(ad.getIsDefault());
+        return dto;
     }
 
     @Transactional

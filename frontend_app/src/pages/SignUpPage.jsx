@@ -45,7 +45,7 @@ const SignUpPage = () => {
 
       // Redirect to verification page, prefill email via query param
       setTimeout(() => {
-        navigate(`/verify?email=${encodeURIComponent(formData.email.trim())}`);
+          navigate(`/verify?email=${encodeURIComponent(formData.email)}`);
       }, 1200);
     } catch (err) {
       setError(err.message || 'Registration failed.');
