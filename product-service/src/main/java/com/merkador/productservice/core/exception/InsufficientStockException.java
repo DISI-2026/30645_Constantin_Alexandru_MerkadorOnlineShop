@@ -8,3 +8,5 @@ public class InsufficientStockException extends RuntimeException {
                 .formatted(productId, requested, available));
     }
 }
+
+

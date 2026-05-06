@@ -15,5 +15,7 @@ public interface JpaProductRepository extends JpaRepository<ProductEntity, UUID>
 
     boolean existsBySlug(String slug);
 
-    boolean existsByIdAndVendorId(UUID id, UUID vendorId);
+    boolean existsByIdAndSellerId(UUID id, UUID sellerId);
 }
+
+

@@ -67,3 +67,5 @@ public class CategoryRepositoryAdapter implements CategoryRepository {
         return jpa.hasProducts(id);
     }
 }
+
+

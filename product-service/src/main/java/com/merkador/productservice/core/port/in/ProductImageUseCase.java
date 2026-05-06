@@ -7,11 +7,13 @@ import java.util.UUID;
 
 public interface ProductImageUseCase {
 
-    ProductImage addImage(UUID productId, ProductImage image, UUID vendorId);
+    ProductImage addImage(UUID productId, ProductImage image, UUID sellerId);
 
-    void deleteImage(UUID productId, UUID imageId, UUID vendorId);
+    void deleteImage(UUID productId, UUID imageId, UUID sellerId);
 
     List<ProductImage> getImagesForProduct(UUID productId);
 
-    void reorderImages(UUID productId, List<UUID> orderedImageIds, UUID vendorId);
+    void reorderImages(UUID productId, List<UUID> orderedImageIds, UUID sellerId);
 }
+
+

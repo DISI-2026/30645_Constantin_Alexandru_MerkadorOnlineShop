@@ -28,3 +28,5 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     @Query("SELECT COUNT(p) > 0 FROM ProductEntity p WHERE p.categoryId = :id")
     boolean hasProducts(@Param("id") UUID id);
 }
+
+

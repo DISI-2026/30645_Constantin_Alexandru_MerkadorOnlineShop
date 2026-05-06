@@ -28,3 +28,5 @@ public interface CategoryRepository {
 
     boolean hasProducts(UUID id);
 }
+
+

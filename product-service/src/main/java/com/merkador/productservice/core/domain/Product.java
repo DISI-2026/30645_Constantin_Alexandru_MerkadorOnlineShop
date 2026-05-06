@@ -17,7 +17,7 @@ import java.util.UUID;
 public class Product {
 
     private UUID id;
-    private UUID vendorId;
+    private UUID sellerId;
     private UUID categoryId;
     private String title;
     private String slug;
@@ -33,9 +33,6 @@ public class Product {
 
     @Builder.Default
     private List<ProductImage> images = new ArrayList<>();
-
-    @Builder.Default
-    private List<ProductVariant> variants = new ArrayList<>();
 
     // -------------------------------------------------------
     // Domain behaviour
@@ -73,3 +70,5 @@ public class Product {
         this.reviewCount = newCount;
     }
 }
+
+

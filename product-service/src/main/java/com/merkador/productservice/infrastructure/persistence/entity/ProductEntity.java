@@ -25,8 +25,8 @@ public class ProductEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "vendor_id", nullable = false)
-    private UUID vendorId;
+    @Column(name = "seller_id", nullable = false)
+    private UUID sellerId;
 
     @Column(name = "category_id", nullable = false)
     private UUID categoryId;
@@ -71,8 +71,6 @@ public class ProductEntity {
     @OrderBy("sortOrder ASC")
     @Builder.Default
     private List<ProductImageEntity> images = new ArrayList<>();
-
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Builder.Default
-    private List<ProductVariantEntity> variants = new ArrayList<>();
 }
+
+

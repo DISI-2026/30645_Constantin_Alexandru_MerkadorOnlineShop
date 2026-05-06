@@ -33,9 +33,12 @@ public class CategoryEntity {
     private int sortOrder;
 
     @Column(name = "is_active", nullable = false)
-    private boolean isActive;
+    @Builder.Default
+    private boolean isActive = true;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 }
+
+

@@ -12,3 +12,5 @@ public class UpdatePriceRequest {
     @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal price;
 }
+
+

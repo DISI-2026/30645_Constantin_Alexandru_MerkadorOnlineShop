@@ -50,8 +50,8 @@ public class ProductRepositoryAdapter implements ProductRepository {
     }
 
     @Override
-    public boolean existsByIdAndVendorId(UUID id, UUID vendorId) {
-        return jpa.existsByIdAndVendorId(id, vendorId);
+    public boolean existsByIdAndSellerId(UUID id, UUID sellerId) {
+        return jpa.existsByIdAndSellerId(id, sellerId);
     }
 
     @Override
@@ -66,3 +66,5 @@ public class ProductRepositoryAdapter implements ProductRepository {
         return Sort.by(direction, sortBy);
     }
 }
+
+

@@ -4,3 +4,5 @@ public enum EsOperation {
     UPSERT,
     DELETE
 }
+
+

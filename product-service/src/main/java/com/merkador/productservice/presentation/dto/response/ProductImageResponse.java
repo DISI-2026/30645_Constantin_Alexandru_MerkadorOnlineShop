@@ -13,3 +13,5 @@ public class ProductImageResponse {
     private String altText;
     private int sortOrder;
 }
+
+

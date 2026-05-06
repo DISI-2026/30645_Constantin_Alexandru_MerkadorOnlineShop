@@ -18,3 +18,5 @@ public interface JpaEsOutboxRepository extends JpaRepository<EsIndexOutboxEntity
             """, nativeQuery = true)
     List<EsIndexOutboxEntity> findUnprocessed(@Param("limit") int limit);
 }
+
+

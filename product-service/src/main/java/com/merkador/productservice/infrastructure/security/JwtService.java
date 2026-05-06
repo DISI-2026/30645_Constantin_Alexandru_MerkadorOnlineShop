@@ -46,11 +46,13 @@ public class JwtService {
     }
 
     public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+        return extractAllClaims(token).get("activeRole", String.class);
     }
 
     public UUID extractUserId(String token) {
-        String userId = extractAllClaims(token).get("userId", String.class);
-        return userId != null ? UUID.fromString(userId) : null;
+        String uuid = extractAllClaims(token).get("uuid", String.class);
+        return UUID.fromString(uuid);
     }
 }
+
+

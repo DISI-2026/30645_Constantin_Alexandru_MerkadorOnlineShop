@@ -37,20 +37,20 @@ class ProductServiceTest {
 
     @InjectMocks ProductService productService;
 
-    private UUID vendorId;
+    private UUID SELLERId;
     private UUID productId;
     private UUID categoryId;
     private Product sampleProduct;
 
     @BeforeEach
     void setUp() {
-        vendorId = UUID.randomUUID();
+        SELLERId = UUID.randomUUID();
         productId = UUID.randomUUID();
         categoryId = UUID.randomUUID();
 
         sampleProduct = Product.builder()
                 .id(productId)
-                .vendorId(vendorId)
+                .sellerId(SELLERId)
                 .categoryId(categoryId)
                 .title("Test Product")
                 .slug("test-product")
@@ -156,7 +156,7 @@ class ProductServiceTest {
             when(productRepository.findById(productId)).thenReturn(Optional.of(sampleProduct));
             when(productRepository.save(any())).thenReturn(sampleProduct);
 
-            productService.deleteProduct(productId, vendorId);
+            productService.deleteProduct(productId, SELLERId);
 
             assertThat(sampleProduct.getStatus()).isEqualTo(ProductStatus.DELETED);
             verify(esOutboxRepository).enqueue(productId, "DELETE");
@@ -164,14 +164,14 @@ class ProductServiceTest {
         }
 
         @Test
-        @DisplayName("should throw BusinessException when vendor does not own product")
+        @DisplayName("should throw BusinessException when SELLER does not own product")
         void shouldThrowWhenNotOwner() {
-            UUID otherVendor = UUID.randomUUID();
+            UUID otherSELLER = UUID.randomUUID();
             when(productRepository.findById(productId)).thenReturn(Optional.of(sampleProduct));
 
-            assertThatThrownBy(() -> productService.deleteProduct(productId, otherVendor))
+            assertThatThrownBy(() -> productService.deleteProduct(productId, otherSELLER))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("does not belong to this vendor");
+                    .hasMessageContaining("does not belong to this SELLER");
         }
     }
 

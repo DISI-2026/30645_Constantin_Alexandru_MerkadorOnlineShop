@@ -11,3 +11,5 @@ public class ReorderImagesRequest {
     @NotEmpty
     private List<UUID> orderedImageIds;
 }
+
+

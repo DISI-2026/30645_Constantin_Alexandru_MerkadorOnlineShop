@@ -19,8 +19,8 @@ public class ProductSpecification {
             if (filter.getCategoryId() != null) {
                 predicates.add(cb.equal(root.get("categoryId"), filter.getCategoryId()));
             }
-            if (filter.getVendorId() != null) {
-                predicates.add(cb.equal(root.get("vendorId"), filter.getVendorId()));
+            if (filter.getSellerId() != null) {
+                predicates.add(cb.equal(root.get("sellerId"), filter.getSellerId()));
             }
             if (filter.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), filter.getStatus()));
@@ -46,3 +46,5 @@ public class ProductSpecification {
         };
     }
 }
+
+

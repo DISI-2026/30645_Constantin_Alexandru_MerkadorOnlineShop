@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/categories")
+@RequestMapping({"/v1/categories", "/products/v1/categories"})
 @RequiredArgsConstructor
 public class CategoryController {
 
@@ -59,7 +59,12 @@ public class CategoryController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CategoryResponse>> create(
             @Valid @RequestBody CategoryRequest request) {
-        Category saved = categoryUseCase.createCategory(mapper.toDomain(request));
+
+        Category category = mapper.toDomain(request);
+        category.setActive(true);
+
+        Category saved = categoryUseCase.createCategory(category);
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(mapper.toResponse(saved), "Category created successfully"));
     }
@@ -80,3 +85,5 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.ok(null, "Category deleted successfully"));
     }
 }
+
+
