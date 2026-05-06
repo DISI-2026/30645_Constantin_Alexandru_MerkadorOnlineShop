@@ -21,3 +21,5 @@ public interface CategoryUseCase {
 
     List<Category> getAllActiveCategories();
 }
+
+

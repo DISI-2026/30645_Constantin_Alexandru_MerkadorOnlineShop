@@ -3,6 +3,7 @@ package com.merkador.productservice.presentation.controller;
 import com.merkador.productservice.core.domain.ProductImage;
 import com.merkador.productservice.core.port.in.ProductImageUseCase;
 import com.merkador.productservice.infrastructure.security.AuthenticatedUser;
+import com.merkador.productservice.infrastructure.storage.LocalFileStorageService;
 import com.merkador.productservice.presentation.dto.request.ProductImageRequest;
 import com.merkador.productservice.presentation.dto.request.ReorderImagesRequest;
 import com.merkador.productservice.presentation.dto.response.ApiResponse;
@@ -11,21 +12,27 @@ import com.merkador.productservice.presentation.mapper.PresentationMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/products/{productId}/images")
+@RequestMapping({
+        "/v1/products/{productId}/images",
+        "/products/v1/products/{productId}/images"
+})
 @RequiredArgsConstructor
 public class ProductImageController {
 
     private final ProductImageUseCase imageUseCase;
     private final PresentationMapper mapper;
+    private final LocalFileStorageService fileStorageService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProductImageResponse>>> getImages(
@@ -35,9 +42,31 @@ public class ProductImageController {
         return ResponseEntity.ok(ApiResponse.ok(images));
     }
 
-    @PostMapping
-    @PreAuthorize("hasRole('VENDOR')")
-    public ResponseEntity<ApiResponse<ProductImageResponse>> addImage(
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<ApiResponse<ProductImageResponse>> addImageFile(
+            @PathVariable UUID productId,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String altText,
+            @RequestParam(defaultValue = "0") int sortOrder,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+
+        String imageUrl = fileStorageService.saveProductImage(file);
+
+        ProductImage image = ProductImage.builder()
+                .url(imageUrl)
+                .altText(altText)
+                .sortOrder(sortOrder)
+                .build();
+
+        ProductImage saved = imageUseCase.addImage(productId, image, user.getUserId());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(mapper.toResponse(saved)));
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<ApiResponse<ProductImageResponse>> addImageJson(
             @PathVariable UUID productId,
             @Valid @RequestBody ProductImageRequest request,
             @AuthenticationPrincipal AuthenticatedUser user) {
@@ -48,7 +77,7 @@ public class ProductImageController {
     }
 
     @DeleteMapping("/{imageId}")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<Void>> deleteImage(
             @PathVariable UUID productId,
             @PathVariable UUID imageId,
@@ -59,7 +88,7 @@ public class ProductImageController {
     }
 
     @PutMapping("/reorder")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<Void>> reorder(
             @PathVariable UUID productId,
             @Valid @RequestBody ReorderImagesRequest request,

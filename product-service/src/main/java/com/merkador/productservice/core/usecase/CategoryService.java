@@ -105,3 +105,5 @@ public class CategoryService implements CategoryUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("Category", id));
     }
 }
+
+

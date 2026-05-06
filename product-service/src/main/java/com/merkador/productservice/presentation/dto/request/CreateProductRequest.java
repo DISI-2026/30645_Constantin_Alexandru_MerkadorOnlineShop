@@ -38,7 +38,6 @@ public class CreateProductRequest {
 
     @Valid
     private List<ProductImageRequest> images = new ArrayList<>();
-
-    @Valid
-    private List<ProductVariantRequest> variants = new ArrayList<>();
 }
+
+

@@ -23,16 +23,16 @@ public class ProductImageService implements ProductImageUseCase {
 
     @Override
     @Transactional
-    public ProductImage addImage(UUID productId, ProductImage image, UUID vendorId) {
-        assertProductOwnership(productId, vendorId);
+    public ProductImage addImage(UUID productId, ProductImage image, UUID sellerId) {
+        assertProductOwnership(productId, sellerId);
         image.setProductId(productId);
         return imageRepository.save(image);
     }
 
     @Override
     @Transactional
-    public void deleteImage(UUID productId, UUID imageId, UUID vendorId) {
-        assertProductOwnership(productId, vendorId);
+    public void deleteImage(UUID productId, UUID imageId, UUID sellerId) {
+        assertProductOwnership(productId, sellerId);
         imageRepository.findById(imageId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProductImage", imageId));
         imageRepository.deleteById(imageId);
@@ -46,8 +46,8 @@ public class ProductImageService implements ProductImageUseCase {
 
     @Override
     @Transactional
-    public void reorderImages(UUID productId, List<UUID> orderedImageIds, UUID vendorId) {
-        assertProductOwnership(productId, vendorId);
+    public void reorderImages(UUID productId, List<UUID> orderedImageIds, UUID sellerId) {
+        assertProductOwnership(productId, sellerId);
         List<ProductImage> images = imageRepository.findByProductId(productId);
 
         List<ProductImage> reordered = IntStream.range(0, orderedImageIds.size())
@@ -65,9 +65,11 @@ public class ProductImageService implements ProductImageUseCase {
         imageRepository.saveAll(reordered);
     }
 
-    private void assertProductOwnership(UUID productId, UUID vendorId) {
-        if (!productRepository.existsByIdAndVendorId(productId, vendorId)) {
-            throw new BusinessException("Product not found or does not belong to vendor.");
+    private void assertProductOwnership(UUID productId, UUID sellerId) {
+        if (!productRepository.existsByIdAndSellerId(productId, sellerId)) {
+            throw new BusinessException("Product not found or does not belong to SELLER.");
         }
     }
 }
+
+

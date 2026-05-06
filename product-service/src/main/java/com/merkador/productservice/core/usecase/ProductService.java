@@ -44,16 +44,16 @@ public class ProductService implements ProductUseCase {
 
         Product saved = productRepository.save(product);
         esOutboxRepository.enqueue(saved.getId(), "UPSERT");
-        eventPublisher.publishProductCreated(new ProductCreatedEvent(saved.getId(), saved.getVendorId(), saved.getTitle()));
+        eventPublisher.publishProductCreated(new ProductCreatedEvent(saved.getId(), saved.getSellerId(), saved.getTitle()));
 
-        log.info("Created product id={} vendor={}", saved.getId(), saved.getVendorId());
+        log.info("Created product id={} SELLER={}", saved.getId(), saved.getSellerId());
         return saved;
     }
 
     @Override
     @Transactional
-    public Product updateProduct(UUID id, Product updated, UUID vendorId) {
-        Product existing = findOwnedOrThrow(id, vendorId);
+    public Product updateProduct(UUID id, Product updated, UUID sellerId) {
+        Product existing = findOwnedOrThrow(id, sellerId);
 
         if (!existing.getSlug().equals(updated.getSlug())
                 && productRepository.existsBySlug(updated.getSlug())) {
@@ -74,20 +74,22 @@ public class ProductService implements ProductUseCase {
 
         Product saved = productRepository.save(existing);
         esOutboxRepository.enqueue(saved.getId(), "UPSERT");
-        eventPublisher.publishProductUpdated(new ProductUpdatedEvent(saved.getId(), saved.getVendorId()));
+        eventPublisher.publishProductUpdated(new ProductUpdatedEvent(saved.getId(), saved.getSellerId()));
 
         return saved;
     }
 
     @Override
     @Transactional
-    public void deleteProduct(UUID id, UUID vendorId) {
-        Product product = findOwnedOrThrow(id, vendorId);
-        product.markDeleted();
-        productRepository.save(product);
+    public void deleteProduct(UUID id, UUID sellerId) {
+        Product product = findOwnedOrThrow(id, sellerId);
+
+        productRepository.deleteById(id);
+
         esOutboxRepository.enqueue(id, "DELETE");
-        eventPublisher.publishProductDeleted(new ProductDeletedEvent(id, vendorId));
-        log.info("Soft-deleted product id={}", id);
+        eventPublisher.publishProductDeleted(new ProductDeletedEvent(id, sellerId));
+
+        log.info("Hard-deleted product id={}", id);
     }
 
     @Override
@@ -105,19 +107,19 @@ public class ProductService implements ProductUseCase {
 
     @Override
     @Transactional
-    public Product updateStock(UUID id, int quantity, UUID vendorId) {
-        Product product = findOwnedOrThrow(id, vendorId);
+    public Product updateStock(UUID id, int quantity, UUID sellerId) {
+        Product product = findOwnedOrThrow(id, sellerId);
         product.setStock(quantity);
         Product saved = productRepository.save(product);
         esOutboxRepository.enqueue(id, "UPSERT");
-        eventPublisher.publishStockUpdated(new StockUpdatedEvent(id, vendorId, quantity));
+        eventPublisher.publishStockUpdated(new StockUpdatedEvent(id, sellerId, quantity));
         return saved;
     }
 
     @Override
     @Transactional
-    public Product updatePrice(UUID id, BigDecimal newPrice, UUID vendorId) {
-        Product product = findOwnedOrThrow(id, vendorId);
+    public Product updatePrice(UUID id, BigDecimal newPrice, UUID sellerId) {
+        Product product = findOwnedOrThrow(id, sellerId);
         product.setPrice(newPrice);
         Product saved = productRepository.save(product);
         esOutboxRepository.enqueue(id, "UPSERT");
@@ -126,8 +128,8 @@ public class ProductService implements ProductUseCase {
 
     @Override
     @Transactional
-    public Product activateProduct(UUID id, UUID vendorId) {
-        Product product = findOwnedOrThrow(id, vendorId);
+    public Product activateProduct(UUID id, UUID sellerId) {
+        Product product = findOwnedOrThrow(id, sellerId);
         product.activate();
         Product saved = productRepository.save(product);
         esOutboxRepository.enqueue(id, "UPSERT");
@@ -136,8 +138,8 @@ public class ProductService implements ProductUseCase {
 
     @Override
     @Transactional
-    public Product deactivateProduct(UUID id, UUID vendorId) {
-        Product product = findOwnedOrThrow(id, vendorId);
+    public Product deactivateProduct(UUID id, UUID sellerId) {
+        Product product = findOwnedOrThrow(id, sellerId);
         product.deactivate();
         Product saved = productRepository.save(product);
         esOutboxRepository.enqueue(id, "UPSERT");
@@ -180,12 +182,14 @@ public class ProductService implements ProductUseCase {
     // Helpers
     // -------------------------------------------------------
 
-    private Product findOwnedOrThrow(UUID id, UUID vendorId) {
+    private Product findOwnedOrThrow(UUID id, UUID sellerId) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", id));
-        if (!product.getVendorId().equals(vendorId)) {
-            throw new BusinessException("Product does not belong to this vendor.");
+        if (!product.getSellerId().equals(sellerId)) {
+            throw new BusinessException("Product does not belong to this SELLER.");
         }
         return product;
     }
 }
+
+

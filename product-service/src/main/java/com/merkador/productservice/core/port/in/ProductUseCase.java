@@ -10,21 +10,21 @@ public interface ProductUseCase {
 
     Product createProduct(Product product);
 
-    Product updateProduct(UUID id, Product updated, UUID vendorId);
+    Product updateProduct(UUID id, Product updated, UUID sellerId);
 
-    void deleteProduct(UUID id, UUID vendorId);
+    void deleteProduct(UUID id, UUID sellerId);
 
     Product getProductById(UUID id);
 
     Page<Product> searchProducts(ProductFilter filter);
 
-    Product updateStock(UUID id, int quantity, UUID vendorId);
+    Product updateStock(UUID id, int quantity, UUID sellerId);
 
-    Product updatePrice(UUID id, BigDecimal newPrice, UUID vendorId);
+    Product updatePrice(UUID id, BigDecimal newPrice, UUID sellerId);
 
-    Product activateProduct(UUID id, UUID vendorId);
+    Product activateProduct(UUID id, UUID sellerId);
 
-    Product deactivateProduct(UUID id, UUID vendorId);
+    Product deactivateProduct(UUID id, UUID sellerId);
 
     /**
      * Called by Order Service via RabbitMQ: reserve stock atomically.
@@ -41,3 +41,5 @@ public interface ProductUseCase {
      */
     void updateRating(UUID productId, BigDecimal newAvg, int reviewCount);
 }
+
+

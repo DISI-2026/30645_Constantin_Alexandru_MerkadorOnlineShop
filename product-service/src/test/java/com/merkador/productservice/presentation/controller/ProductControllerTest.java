@@ -48,18 +48,18 @@ class ProductControllerTest {
     @MockBean ProductUseCase productUseCase;
     @MockBean PresentationMapper mapper;
 
-    private UUID vendorId;
+    private UUID sellerId;
     private UUID productId;
     private Product sampleProduct;
 
     @BeforeEach
     void setUp() {
-        vendorId = UUID.randomUUID();
+        sellerId = UUID.randomUUID();
         productId = UUID.randomUUID();
 
         sampleProduct = Product.builder()
                 .id(productId)
-                .vendorId(vendorId)
+                .sellerId(sellerId)
                 .categoryId(UUID.randomUUID())
                 .title("Sample Product")
                 .slug("sample-product")
@@ -74,10 +74,10 @@ class ProductControllerTest {
                 .build();
     }
 
-    private void authenticateAsVendor() {
-        AuthenticatedUser principal = new AuthenticatedUser(vendorId, "VENDOR");
+    private void authenticateAsSELLER() {
+        AuthenticatedUser principal = new AuthenticatedUser(sellerId, "SELLER");
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                principal, null, List.of(new SimpleGrantedAuthority("ROLE_VENDOR")));
+                principal, null, List.of(new SimpleGrantedAuthority("ROLE_SELLER")));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
@@ -102,9 +102,9 @@ class ProductControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/products - creates product for authenticated vendor")
-    void shouldCreateProductAsVendor() throws Exception {
-        authenticateAsVendor();
+    @DisplayName("POST /api/v1/products - creates product for authenticated SELLER")
+    void shouldCreateProductAsSELLER() throws Exception {
+        authenticateAsSELLER();
 
         CreateProductRequest request = new CreateProductRequest();
         request.setTitle("New Product");
@@ -134,7 +134,7 @@ class ProductControllerTest {
     @Test
     @DisplayName("POST /api/v1/products - returns 400 when request is invalid")
     void shouldReturn400OnInvalidRequest() throws Exception {
-        authenticateAsVendor();
+        authenticateAsSELLER();
 
         CreateProductRequest invalid = new CreateProductRequest();
         // title is blank, price is null → validation should fail

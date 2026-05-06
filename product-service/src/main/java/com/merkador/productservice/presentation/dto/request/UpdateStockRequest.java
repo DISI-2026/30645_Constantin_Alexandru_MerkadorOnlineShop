@@ -8,3 +8,5 @@ public class UpdateStockRequest {
     @Min(value = 0, message = "Stock must be non-negative")
     private int stock;
 }
+
+

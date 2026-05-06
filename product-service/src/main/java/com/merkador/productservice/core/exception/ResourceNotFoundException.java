@@ -5,3 +5,5 @@ public class ResourceNotFoundException extends RuntimeException {
         super("%s not found with id: %s".formatted(resource, id));
     }
 }
+
+

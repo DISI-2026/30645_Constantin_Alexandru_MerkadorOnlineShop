@@ -26,7 +26,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/products")
+@RequestMapping({"/v1/products", "/products/v1/products"})
 @RequiredArgsConstructor
 public class ProductController {
 
@@ -44,7 +44,7 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> search(
             @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) UUID vendorId,
+            @RequestParam(required = false) UUID sellerId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
@@ -56,7 +56,7 @@ public class ProductController {
 
         ProductFilter filter = ProductFilter.builder()
                 .categoryId(categoryId)
-                .vendorId(vendorId)
+                .sellerId(sellerId)
                 .searchTerm(search)
                 .minPrice(minPrice)
                 .maxPrice(maxPrice)
@@ -84,14 +84,14 @@ public class ProductController {
     }
 
     // ================================================================
-    // VENDOR ENDPOINTS
+    // SELLER ENDPOINTS
     // ================================================================
 
     /**
-     * Vendor: list own products (with any status).
+     * SELLER: list own products (with any status).
      */
     @GetMapping("/my")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getMyProducts(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) ProductStatus status,
@@ -99,7 +99,7 @@ public class ProductController {
             @RequestParam(defaultValue = "20") int size) {
 
         ProductFilter filter = ProductFilter.builder()
-                .vendorId(user.getUserId())
+                .sellerId(user.getUserId())
                 .status(status)
                 .page(page)
                 .size(Math.min(size, 100))
@@ -114,16 +114,16 @@ public class ProductController {
     }
 
     /**
-     * Vendor: create a new product.
+     * SELLER: create a new product.
      */
     @PostMapping
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> create(
             @Valid @RequestBody CreateProductRequest request,
             @AuthenticationPrincipal AuthenticatedUser user) {
 
         Product domain = mapper.toDomain(request);
-        domain.setVendorId(user.getUserId());
+        domain.setSellerId(user.getUserId());
 
         Product saved = productUseCase.createProduct(domain);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -131,10 +131,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: update product details.
+     * SELLER: update product details.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateProductRequest request,
@@ -145,10 +145,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: soft-delete a product.
+     * SELLER: soft-delete a product.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthenticatedUser user) {
@@ -158,10 +158,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: update stock only.
+     * SELLER: update stock only.
      */
     @PatchMapping("/{id}/stock")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> updateStock(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStockRequest request,
@@ -172,10 +172,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: update price only.
+     * SELLER: update price only.
      */
     @PatchMapping("/{id}/price")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> updatePrice(
             @PathVariable UUID id,
             @Valid @RequestBody UpdatePriceRequest request,
@@ -186,10 +186,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: activate product (make it visible).
+     * SELLER: activate product (make it visible).
      */
     @PatchMapping("/{id}/activate")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> activate(
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthenticatedUser user) {
@@ -199,10 +199,10 @@ public class ProductController {
     }
 
     /**
-     * Vendor: deactivate product (hide from public).
+     * SELLER: deactivate product (hide from public).
      */
     @PatchMapping("/{id}/deactivate")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ApiResponse<ProductResponse>> deactivate(
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthenticatedUser user) {
@@ -211,3 +211,5 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.ok(mapper.toResponse(updated)));
     }
 }
+
+

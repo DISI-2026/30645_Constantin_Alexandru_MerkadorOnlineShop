@@ -10,3 +10,5 @@ public interface EventPublisher {
 
     void publishStockUpdated(Object event);
 }
+
+

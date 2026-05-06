@@ -220,21 +220,20 @@ services:
       - "traefik.enable=true"
 
       # --- Public routes GET (fara JWT) ---
-      - "traefik.http.routers.product-public.rule=(PathPrefix(`/api/products`) || PathPrefix(`/api/categories`)) && Method(`GET`)"
+      - "traefik.http.routers.product-public.rule=(PathPrefix(`/api/products`) || PathPrefix(`/api/categories`) || PathPrefix(`/api/uploads/products`)) && Method(`GET`)"
       - "traefik.http.routers.product-public.service=product-ms"
       - "traefik.http.routers.product-public.middlewares=strip-api,cors-frontend"
       - "traefik.http.routers.product-public.entrypoints=web"
       - "traefik.http.routers.product-public.priority=10"
 
       # --- Protected routes (JWT required) ---
-      - "traefik.http.routers.product-secure.rule=PathPrefix(`/api/products`) || PathPrefix(`/api/categories`)"
+      - "traefik.http.routers.product-secure.rule=PathPrefix(`/api/products`) || PathPrefix(`/api/categories`) || PathPrefix(`/api/uploads/products`)"
       - "traefik.http.routers.product-secure.service=product-ms"
       - "traefik.http.routers.product-secure.middlewares=strip-api,cors-frontend,forward-auth"
       - "traefik.http.routers.product-secure.entrypoints=web"
       - "traefik.http.routers.product-secure.priority=5"
 
       - "traefik.http.services.product-ms.loadbalancer.server.port=8084"
-
   post-ms:
     build: ./post-service
     container_name: post-ms

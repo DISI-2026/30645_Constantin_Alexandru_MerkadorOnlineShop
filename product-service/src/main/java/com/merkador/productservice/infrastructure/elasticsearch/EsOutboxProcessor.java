@@ -57,3 +57,5 @@ public class EsOutboxProcessor {
         log.info("ES sync [{}] productId={}", entry.getOperation(), entry.getProductId());
     }
 }
+
+

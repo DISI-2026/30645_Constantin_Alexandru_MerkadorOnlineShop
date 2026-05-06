@@ -19,7 +19,9 @@ public interface ProductRepository {
 
     boolean existsBySlug(String slug);
 
-    boolean existsByIdAndVendorId(UUID id, UUID vendorId);
+    boolean existsByIdAndSellerId(UUID id, UUID sellerId);
 
     void deleteById(UUID id);
 }
+
+

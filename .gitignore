@@ -22,3 +22,5 @@ Thumbs.db
 
 # Docker volumes / Local storage
 upload_data/
+
+target/

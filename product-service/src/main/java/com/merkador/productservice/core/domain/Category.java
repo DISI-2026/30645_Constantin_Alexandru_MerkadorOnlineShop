@@ -17,10 +17,13 @@ public class Category {
     private String slug;
     private UUID parentId;
     private int sortOrder;
-    private boolean isActive;
+    @Builder.Default
+    private boolean isActive = true;
     private OffsetDateTime createdAt;
 
     public boolean isRoot() {
         return parentId == null;
     }
 }
+
+

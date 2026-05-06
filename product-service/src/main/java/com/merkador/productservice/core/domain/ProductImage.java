@@ -17,3 +17,5 @@ public class ProductImage {
     private String altText;
     private int sortOrder;
 }
+
+

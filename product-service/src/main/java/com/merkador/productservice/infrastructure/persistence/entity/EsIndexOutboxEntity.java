@@ -39,3 +39,5 @@ public class EsIndexOutboxEntity {
     @Column(name = "processed_at")
     private OffsetDateTime processedAt;
 }
+
+

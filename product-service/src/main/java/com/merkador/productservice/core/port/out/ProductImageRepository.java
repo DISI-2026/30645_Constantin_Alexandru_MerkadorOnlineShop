@@ -18,3 +18,5 @@ public interface ProductImageRepository {
 
     void saveAll(List<ProductImage> images);
 }
+
+

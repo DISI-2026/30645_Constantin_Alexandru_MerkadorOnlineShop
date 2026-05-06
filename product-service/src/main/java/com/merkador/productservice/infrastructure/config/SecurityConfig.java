@@ -27,19 +27,32 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public read endpoints
-                .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
-                // Actuator
+                .requestMatchers("/uploads/products/**").permitAll()
+
+                .requestMatchers(HttpMethod.GET,
+                        "/v1/products/**",
+                        "/products/v1/products/**").permitAll()
+                .requestMatchers(HttpMethod.GET,
+                        "/v1/categories/**",
+                        "/products/v1/categories/**").permitAll()
+
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                // Admin only
-                .requestMatchers("/api/v1/categories/**").hasRole("ADMIN")
-                // Vendor only
-                .requestMatchers(HttpMethod.POST, "/api/v1/products/**").hasRole("VENDOR")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/products/**").hasRole("VENDOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/v1/products/**").hasRole("VENDOR")
-                .requestMatchers(HttpMethod.PATCH, "/api/v1/products/**").hasRole("VENDOR")
-                // Everything else requires authentication
+
+                .requestMatchers("/v1/categories/**", "/products/v1/categories/**").hasRole("ADMIN")
+
+                .requestMatchers(HttpMethod.POST,
+                        "/v1/products/**",
+                        "/products/v1/products/**").hasRole("SELLER")
+                .requestMatchers(HttpMethod.PUT,
+                        "/v1/products/**",
+                        "/products/v1/products/**").hasRole("SELLER")
+                .requestMatchers(HttpMethod.DELETE,
+                        "/v1/products/**",
+                        "/products/v1/products/**").hasRole("SELLER")
+                .requestMatchers(HttpMethod.PATCH,
+                        "/v1/products/**",
+                        "/products/v1/products/**").hasRole("SELLER")
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

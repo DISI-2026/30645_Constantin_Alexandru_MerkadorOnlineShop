@@ -32,6 +32,9 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:super-secret-demo-key-change-me!}
+  upload:
+    product-images-dir: ${PRODUCT_IMAGES_DIR:upload_data/products}
+    product-images-url-prefix: /uploads/products
   rabbitmq:
     exchanges:
       product: product.exchange

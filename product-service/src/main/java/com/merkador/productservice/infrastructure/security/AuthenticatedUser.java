@@ -11,3 +11,5 @@ public class AuthenticatedUser {
     private final UUID userId;
     private final String role;
 }
+
+

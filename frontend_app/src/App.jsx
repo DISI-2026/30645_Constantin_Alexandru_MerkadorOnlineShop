@@ -18,6 +18,8 @@ import ForgotPasswordEmailPage from './pages/ForgotPasswordEmailPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import VerificationPage from './pages/VerificationPage.jsx';
 import ReactivatePage from "./pages/ReactivatePage.jsx";
+import SellerProductsPage from "./pages/SellerProductsPage.jsx";
+import AdminCategoriesPage from "./pages/AdminCategoriesPage.jsx";
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -61,6 +63,7 @@ const App = () => (
                     {/* PROTECTED ROUTES */}
                     <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
                         <Route path="/admin" element={<AdminPage />} />
+                        <Route path="/admin/categories" element={<AdminCategoriesPage />} />
                     </Route>
 
                     <Route element={<ProtectedRoute allowedRoles={["BUYER"]} />}>
@@ -69,6 +72,7 @@ const App = () => (
 
                     <Route element={<ProtectedRoute allowedRoles={["SELLER"]} />}>
                         <Route path="/seller" element={<SellerPage />} />
+                        <Route path="/seller/products" element={<SellerProductsPage />} />
                     </Route>
 
                     <Route element={<ProtectedRoute allowedRoles={['BUYER', 'SELLER', 'ADMIN']} />}>

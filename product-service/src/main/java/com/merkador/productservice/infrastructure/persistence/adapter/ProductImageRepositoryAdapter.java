@@ -43,3 +43,5 @@ public class ProductImageRepositoryAdapter implements ProductImageRepository {
         jpa.saveAll(images.stream().map(mapper::toEntity).toList());
     }
 }
+
+

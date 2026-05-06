@@ -13,7 +13,7 @@ import java.util.UUID;
 @Builder
 public class ProductResponse {
     private UUID id;
-    private UUID vendorId;
+    private UUID sellerId;
     private UUID categoryId;
     private String title;
     private String slug;
@@ -26,6 +26,6 @@ public class ProductResponse {
     private int reviewCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
-    private List<ProductImageResponse> images;
-    private List<ProductVariantResponse> variants;
-}
+    private List<ProductImageResponse> images;}
+
+

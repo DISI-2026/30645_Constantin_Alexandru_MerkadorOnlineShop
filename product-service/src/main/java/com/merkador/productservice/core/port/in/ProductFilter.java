@@ -11,7 +11,7 @@ import java.util.UUID;
 @Builder
 public class ProductFilter {
     private UUID categoryId;
-    private UUID vendorId;
+    private UUID sellerId;
     private String searchTerm;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
@@ -22,3 +22,5 @@ public class ProductFilter {
     private String sortBy;
     private String sortDirection;
 }
+
+

@@ -17,3 +17,5 @@ public class CategoryResponse {
     private boolean isActive;
     private OffsetDateTime createdAt;
 }
+
+

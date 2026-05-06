@@ -26,12 +26,12 @@ CREATE INDEX idx_categories_is_active ON categories(is_active);
 
 -- ============================================================
 -- PRODUCTS
--- vendor_id and category_id are logical (cross-service) FKs
+-- SELLER_id and category_id are logical (cross-service) FKs
 -- avg_rating / review_count are denormalized aggregates
 -- ============================================================
 CREATE TABLE products (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    vendor_id       UUID NOT NULL,
+    SELLER_id       UUID NOT NULL,
     category_id     UUID NOT NULL REFERENCES categories(id),
     title           VARCHAR(500) NOT NULL,
     slug            VARCHAR(500) NOT NULL UNIQUE,
@@ -47,7 +47,7 @@ CREATE TABLE products (
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_products_vendor_id ON products(vendor_id);
+CREATE INDEX idx_products_SELLER_id ON products(SELLER_id);
 CREATE INDEX idx_products_category_id ON products(category_id);
 CREATE INDEX idx_products_status ON products(status);
 CREATE INDEX idx_products_slug ON products(slug);
@@ -68,22 +68,6 @@ CREATE TABLE product_images (
 );
 
 CREATE INDEX idx_product_images_product_id ON product_images(product_id);
-
--- ============================================================
--- PRODUCT_VARIANTS
--- Allows size/color variants with individual stock and price modifier
--- ============================================================
-CREATE TABLE product_variants (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id      UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    sku             VARCHAR(255) NOT NULL UNIQUE,
-    label           VARCHAR(255) NOT NULL,
-    price_modifier  NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-    stock           INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0)
-);
-
-CREATE INDEX idx_product_variants_product_id ON product_variants(product_id);
-CREATE INDEX idx_product_variants_sku ON product_variants(sku);
 
 -- ============================================================
 -- ES_INDEX_OUTBOX
