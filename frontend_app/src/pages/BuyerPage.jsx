@@ -4,6 +4,7 @@ import MainNavbar from '../components/MainNavbar.jsx';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { deactivate, changePassword, requestEmailUpdate } from '../api/credentialsService';
+import { categoryService } from '../api/categoryService';
 import {
     getUserById,
     updateUser,
@@ -20,6 +21,9 @@ const BuyerPage = () => {
     const navigate = useNavigate();
     const [tab, setTab] = useState('account');
 
+    // --- State for Categories ---
+    const [availableCategories, setAvailableCategories] = useState([]);
+
     // --- State for Profile Data ---
     const [profile, setProfile] = useState(null);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -27,7 +31,8 @@ const BuyerPage = () => {
     const [profileForm, setProfileForm] = useState({
         firstName: '',
         lastName: '',
-        phone: ''
+        phone: '',
+        preferredCategories: []
     });
 
     // Reference to the hidden file input
@@ -57,6 +62,20 @@ const BuyerPage = () => {
         isDefault: false
     });
 
+    // --- Loads all categories ---
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const response = await categoryService.getCategories();
+                const categories = response.data || [];
+                setAvailableCategories(categories || []);
+            } catch (error) {
+                console.error("Failed to load categories:", error);
+            }
+        };
+        fetchCategories();
+    }, []);
+
     // Fetch user data
     const fetchUserData = useCallback(async () => {
         if (!userId) return;
@@ -66,7 +85,8 @@ const BuyerPage = () => {
             setProfileForm({
                 firstName: userProfile.firstName || '',
                 lastName: userProfile.lastName || '',
-                phone: userProfile.phone || ''
+                phone: userProfile.phone || '',
+                preferredCategories: userProfile.preferredCategories || []
             });
 
             const userAddresses = await getUserAddresses(userId);
@@ -88,13 +108,23 @@ const BuyerPage = () => {
         setProfileForm(prev => ({ ...prev, [name]: value }));
     };
 
+    // Toggles the selected state of a category, if selected, then its preffered by the user
+    const handleCategoryToggle = (slug) => {
+        setProfileForm(prev => {
+            const isAlreadySelected = prev.preferredCategories.includes(slug);
+            const updatedCategories = isAlreadySelected
+                ? prev.preferredCategories.filter(catSlug => catSlug !== slug) // Remove
+                : [...prev.preferredCategories, slug]; // Add
+
+            return { ...prev, preferredCategories: updatedCategories };
+        });
+    };
+
+    // Updates the user's data (including preferred categories) in the backend
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         try {
-            await updateUser(userId, {
-                ...profileForm,
-                preferredCategories: profile.preferredCategories || []
-            });
+            await updateUser(userId, profileForm);
             setIsEditingProfile(false);
             fetchUserData();
         } catch (error) {
@@ -135,7 +165,7 @@ const BuyerPage = () => {
     const handleDeactivateAccount = async () => {
         if (window.confirm("Are you sure you want to deactivate your account? You can choose to reactivate it later.")) {
             try {
-                await deactivate(currentEmail);
+                await deactivate(userId);
                 await logout();
                 navigate('/login');
             } catch (error) {
@@ -249,43 +279,41 @@ const BuyerPage = () => {
                                     <div className="card-body">
                                         <h4 className="card-title mb-4">Personal Information</h4>
 
-                                        {/* Clickable Avatar Container */}
+                                        {/* Avatar UI */}
                                         <div className="avatar-container" onClick={handleAvatarClick} title="Click to change avatar">
                                             {isUploadingAvatar ? (
-                                                <div className="spinner-border text-success" role="status">
-                                                    <span className="visually-hidden">Loading...</span>
-                                                </div>
+                                                <div className="spinner-border text-success" role="status"><span className="visually-hidden">Loading...</span></div>
                                             ) : profile.avatarUrl ? (
-                                                <>
-                                                    <img src={profile.avatarUrl} alt="Avatar" className="avatar-image" />
-                                                    <div className="avatar-overlay">Change</div>
-                                                </>
+                                                <><img src={profile.avatarUrl} alt="Avatar" className="avatar-image" /><div className="avatar-overlay">Change</div></>
                                             ) : (
-                                                <>
-                                                    <span className="text-muted">No Avatar</span>
-                                                    <div className="avatar-overlay">Upload</div>
-                                                </>
+                                                <><span className="text-muted">No Avatar</span><div className="avatar-overlay">Upload</div></>
                                             )}
                                         </div>
-
-                                        {/* Hidden File Input */}
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            style={{ display: 'none' }}
-                                            accept="image/*"
-                                            onChange={handleFileChange}
-                                        />
+                                        <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileChange} />
 
                                         {!isEditingProfile ? (
                                             <div className="mt-4 text-center text-md-start">
                                                 <p><strong>First Name:</strong> {profile.firstName}</p>
                                                 <p><strong>Last Name:</strong> {profile.lastName}</p>
                                                 <p><strong>Phone:</strong> {profile.phone || 'Not set'}</p>
-                                                <button
-                                                    className="btn btn-outline-success mt-3 w-100"
-                                                    onClick={() => setIsEditingProfile(true)}
-                                                >
+
+                                                {/* Category div */}
+                                                <div className="mt-3 text-start">
+                                                    <p className="mb-1"><strong>Preferred Categories:</strong></p>
+                                                    <div className="category-tags-container">
+                                                        {profile.preferredCategories && profile.preferredCategories.length > 0 ? (
+                                                            profile.preferredCategories.map(slug => {
+                                                                // Find and show the name of the category based on the slug, fallback to slug if not found
+                                                                const catName = availableCategories.find(c => c.slug === slug)?.name || slug;
+                                                                return <span key={slug} className="category-tag read-only">{catName}</span>;
+                                                            })
+                                                        ) : (
+                                                            <span className="text-muted small">No preferences set</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <button className="btn btn-outline-success mt-4 w-100" onClick={() => setIsEditingProfile(true)}>
                                                     Edit Profile
                                                 </button>
                                             </div>
@@ -306,13 +334,47 @@ const BuyerPage = () => {
                                                         <label className="form-label small">Phone</label>
                                                         <input type="text" className="form-control form-control-sm" name="phone" value={profileForm.phone} onChange={handleProfileChange} />
                                                     </div>
+
+                                                    {/* Category selection during Edit */}
+                                                    <div className="mb-4">
+                                                        <label className="form-label small">Preferred Categories</label>
+                                                        <div className="category-tags-container">
+                                                            {availableCategories.length > 0 ? (
+                                                                availableCategories.map(cat => {
+                                                                    const isSelected = profileForm.preferredCategories.includes(cat.slug);
+                                                                    return (
+                                                                        <button
+                                                                            key={cat.slug}
+                                                                            type="button"
+                                                                            className={`category-tag toggleable ${isSelected ? 'selected' : ''}`}
+                                                                            onClick={() => handleCategoryToggle(cat.slug)}
+                                                                        >
+                                                                            {cat.name}
+                                                                        </button>
+                                                                    );
+                                                                })
+                                                            ) : (
+                                                                <span className="text-muted small">Loading categories...</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
                                                     <div className="d-flex gap-2">
                                                         <button type="submit" className="btn btn-success btn-sm flex-grow-1">Save Profile</button>
-                                                        <button type="button" className="btn btn-secondary btn-sm flex-grow-1" onClick={() => setIsEditingProfile(false)}>Done Editing</button>
+                                                        <button type="button" className="btn btn-secondary btn-sm flex-grow-1" onClick={() => {
+                                                            setIsEditingProfile(false);
+                                                            // Reset to original values id user cancels the edit
+                                                            setProfileForm({
+                                                                firstName: profile.firstName || '',
+                                                                lastName: profile.lastName || '',
+                                                                phone: profile.phone || '',
+                                                                preferredCategories: profile.preferredCategories || []
+                                                            });
+                                                        }}>Cancel</button>
                                                     </div>
                                                 </form>
 
-                                                {/* 2. Security Settings (Email, Password, Deactivate) */}
+                                                {/* 2. Security Settings */}
                                                 <h6 className="text-muted mb-3">Security & Account</h6>
 
                                                 {/* Email Update Area */}

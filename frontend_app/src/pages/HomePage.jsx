@@ -104,7 +104,7 @@ const HomePage = () => {
               <button
                 type="button"
                 className="nav-button nav-button-primary"
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/register')}
               >
                 Sign Up
               </button>
@@ -112,7 +112,7 @@ const HomePage = () => {
               <select className="auth-combobox" onChange={handleAuthSelect} defaultValue="">
                 <option value="" disabled>More</option>
                 <option value="/login">Login</option>
-                <option value="/signup">Sign Up</option>
+                <option value="/register">Sign Up</option>
               </select>
             </div>
           )}
@@ -154,7 +154,7 @@ const HomePage = () => {
                 <button
                   type="button"
                   className="hero-btn hero-btn-secondary"
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate('/register')}
                 >
                   Create Account
                 </button>

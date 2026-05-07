@@ -5,12 +5,11 @@ import NotificationBell from './NotificationBell';
 
 const MainNavbar = ({ pageTitle }) => {
     const { logout, activeRole, roles, switchRole } = useAuth();
-    const navigate = useNavigate();
 
     const handleRoleChange = (e) => {
         const selectedRole = e.target.value;
         if (selectedRole !== activeRole) {
-            switchRole(selectedRole, navigate);
+            switchRole(selectedRole);
         }
     };
 

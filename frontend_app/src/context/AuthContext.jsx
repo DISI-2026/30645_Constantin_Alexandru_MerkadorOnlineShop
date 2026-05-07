@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }) => {
   const switchRole = async (targetRole) => {
     try {
         // request a new token with the new role
-        const response = await apiSwitchRole(email, targetRole);
+        const response = await apiSwitchRole(userId, targetRole);
 
         // get new token
         const newJwt = response.token;

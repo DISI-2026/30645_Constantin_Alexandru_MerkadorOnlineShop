@@ -23,8 +23,26 @@ public class ProductRepositoryAdapter implements ProductRepository {
 
     @Override
     public Product save(Product product) {
-        ProductEntity entity = mapper.toEntity(product);
-        return mapper.toDomain(jpa.save(entity));
+        if (product.getId() == null) {
+            return mapper.toDomain(jpa.save(mapper.toEntity(product)));
+        }
+
+        ProductEntity existingEntity = jpa.findById(product.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product", product.getId()));
+
+        existingEntity.setSellerId(product.getSellerId());
+        existingEntity.setCategoryId(product.getCategoryId());
+        existingEntity.setTitle(product.getTitle());
+        existingEntity.setSlug(product.getSlug());
+        existingEntity.setDescription(product.getDescription());
+        existingEntity.setPrice(product.getPrice());
+        existingEntity.setCurrency(product.getCurrency());
+        existingEntity.setStock(product.getStock());
+        existingEntity.setStatus(product.getStatus());
+        existingEntity.setAvgRating(product.getAvgRating());
+        existingEntity.setReviewCount(product.getReviewCount());
+
+        return mapper.toDomain(jpa.save(existingEntity));
     }
 
     @Override

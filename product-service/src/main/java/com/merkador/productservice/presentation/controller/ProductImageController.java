@@ -83,6 +83,17 @@ public class ProductImageController {
             @PathVariable UUID imageId,
             @AuthenticationPrincipal AuthenticatedUser user) {
 
+        // Get the image URL to delete from the database
+        String imageUrlToDelete = imageUseCase.getImagesForProduct(productId).stream()
+                .filter(img -> img.getId().equals(imageId))
+                .map(ProductImage::getUrl)
+                .findFirst()
+                .orElse(null);
+        // Delete the image from the file storage
+        if (imageUrlToDelete != null) {
+            fileStorageService.deleteProductImageByUrl(imageUrlToDelete);
+        }
+        // Delete the image from the database
         imageUseCase.deleteImage(productId, imageId, user.getUserId());
         return ResponseEntity.ok(ApiResponse.ok(null, "Image deleted"));
     }

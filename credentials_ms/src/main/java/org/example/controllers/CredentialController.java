@@ -10,6 +10,7 @@ import org.example.services.CredentialService;
 import org.example.services.JwtService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -100,32 +101,37 @@ public class CredentialController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/deactivate-account")
-    public ResponseEntity<Void> deactivateAccount(@RequestParam String email) {
-        credentialService.deactivateAccount(email);
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("principal == #id.toString()")
+    public ResponseEntity<Void> deactivateAccount(@PathVariable UUID id) {
+        credentialService.deactivateAccount(id);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/switch-role")
-    public ResponseEntity<Map<String, String>> switchRole(@RequestBody Map<String, String> body) {
-        String newJwt = credentialService.switchRole(body.get("email"), body.get("targetRole"));
-        // return as a simple JSON with the new token
+    @PostMapping("/{id}/switch-role")
+    @PreAuthorize("principal == #id.toString()")
+    public ResponseEntity<Map<String, String>> switchRole(@PathVariable UUID id, @RequestBody Map<String, String> body) {
+        String newJwt = credentialService.switchRole(id, body.get("targetRole"));
+        // Return as a simple JSON containing the token
         return ResponseEntity.ok(Collections.singletonMap("token", newJwt));
     }
 
     @PutMapping("/{id}/password")
+    @PreAuthorize("principal == #id.toString()")
     public ResponseEntity<Void> changePassword(@PathVariable UUID id, @RequestBody Map<String, String> body) {
         credentialService.changePassword(id, body.get("oldPassword"), body.get("newPassword"));
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/email-update-request")
+    @PreAuthorize("principal == #id.toString()")
     public ResponseEntity<Void> requestEmailUpdate(@PathVariable UUID id, @RequestParam String newEmail) {
         credentialService.requestEmailUpdate(id, newEmail);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/email-update-confirm")
+    @PreAuthorize("principal == #id.toString()")
     public ResponseEntity<Void> confirmEmailUpdate(@PathVariable UUID id, @RequestParam String code) {
         credentialService.confirmEmailUpdate(id, code);
         return ResponseEntity.ok().build();
@@ -137,33 +143,39 @@ public class CredentialController {
     // ==========================================
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<CredentialRespDTO>> getAllCredentials() {
         return ResponseEntity.ok().body(credentialService.findCredentials());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CredentialRespDTO> getCredentialById(@PathVariable UUID id) {
         return ResponseEntity.ok().body(credentialService.findCredentialById(id));
     }
 
     @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CredentialRespDTO> getCredentialByEmail(@PathVariable String email) {
         return ResponseEntity.ok().body(credentialService.findCredentialByEmail(email));
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(@PathVariable UUID id, @RequestParam AccountStatus newStatus) {
         credentialService.updateStatus(id, newStatus);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> addRole(@PathVariable UUID id, @RequestParam String newRole) {
         credentialService.addRole(id, newRole);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/delete")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCredential(@PathVariable UUID id) {
         credentialService.delete(id);
         return ResponseEntity.noContent().build();
