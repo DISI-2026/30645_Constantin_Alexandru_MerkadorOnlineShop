@@ -1,0 +1,267 @@
+{
+  "info": {
+    "name": "Merkador - Notification Service",
+    "_postman_id": "merkador-notification-service",
+    "description": "Test collection for the Notification Service REST API.\n\n1. Run 'Login' first — it auto-saves the JWT token.\n2. All notification requests use that token automatically.\n3. Use 'Place Order' or 'Change Order Status' to trigger real notifications.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",         "value": "http://localhost",  "type": "string" },
+    { "key": "token",           "value": "",                  "type": "string" },
+    { "key": "notificationId",  "value": "",                  "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login (saves token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token saved:', json.token.substring(0, 30) + '...');",
+                  "} else {",
+                  "    console.error('Login failed - no token in response');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/credentials/login", "host": ["{{baseUrl}}"], "path": ["api","credentials","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"your@email.com\",\n  \"password\": \"yourpassword\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications (page 0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Has content array', () => pm.expect(json.content).to.be.an('array'));",
+                  "if (json.content && json.content.length > 0) {",
+                  "    pm.collectionVariables.set('notificationId', json.content[0].id);",
+                  "    console.log('Saved notificationId:', json.content[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","notifications"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Has count field', () => pm.expect(json).to.have.property('count'));",
+                  "console.log('Unread count:', json.count);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["api","notifications","unread-count"] }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('read is true', () => pm.expect(json.read).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["api","notifications","{{notificationId}}","read"] }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["api","notifications","read-all"] }
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["api","notifications","{{notificationId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Trigger Notifications",
+      "description": "These requests hit other services to generate real notification events via RabbitMQ.",
+      "item": [
+        {
+          "name": "Place Order (triggers ORDER_PLACED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 or 201', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "console.log('Order placed - check GET /notifications for ORDER_PLACED event');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/orders/checkout", "host": ["{{baseUrl}}"], "path": ["api","orders","checkout"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"addressId\": \"REPLACE_WITH_ADDRESS_ID\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Order Status (triggers ORDER_STATUS_CHANGED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "console.log('Status changed - check GET /notifications for ORDER_STATUS_CHANGED event');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/admin/orders/REPLACE_WITH_ORDER_ID/status", "host": ["{{baseUrl}}"], "path": ["api","admin","orders","REPLACE_WITH_ORDER_ID","status"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHIPPED\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. RabbitMQ Management",
+      "description": "Direct access to the RabbitMQ management UI API (no JWT, uses RabbitMQ credentials).",
+      "item": [
+        {
+          "name": "Check notification.service.order.queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Basic Z3Vlc3Q6Z3Vlc3Q=" }
+            ],
+            "url": {
+              "raw": "http://localhost:16672/api/queues/%2F/notification.service.order.queue",
+              "host": ["localhost"],
+              "port": "16672",
+              "path": ["api","queues","%2F","notification.service.order.queue"]
+            },
+            "description": "Basic auth = guest:guest (base64). Shows queue depth, consumer count, message rates."
+          }
+        },
+        {
+          "name": "Check review_notifications queue",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Basic Z3Vlc3Q6Z3Vlc3Q=" }
+            ],
+            "url": {
+              "raw": "http://localhost:16672/api/queues/%2F/review_notifications",
+              "host": ["localhost"],
+              "port": "16672",
+              "path": ["api","queues","%2F","review_notifications"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
