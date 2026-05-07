@@ -292,7 +292,7 @@ services:
       # --- WebSocket endpoint (auth via STOMP headers, no Traefik forward-auth) ---
       - "traefik.http.routers.notification-ws.rule=PathPrefix(`/api/notifications/ws`)"
       - "traefik.http.routers.notification-ws.service=notification-ms"
-      - "traefik.http.routers.notification-ws.middlewares=strip-api"
+      - "traefik.http.routers.notification-ws.middlewares=strip-api, cors-frontend"
       - "traefik.http.routers.notification-ws.entrypoints=web"
       - "traefik.http.routers.notification-ws.priority=100"
 

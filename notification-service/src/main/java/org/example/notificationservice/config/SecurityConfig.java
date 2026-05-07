@@ -26,8 +26,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req
                         // WebSocket endpoint — auth is handled by the STOMP channel interceptor
                         .requestMatchers("/notifications/ws/**").permitAll()
+                        // Spring Boot error path
+                        .requestMatchers("/error").permitAll()
                         // REST API requires valid JWT
                         .requestMatchers("/notifications/**").authenticated()
+                        // Deny anything else
                         .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
