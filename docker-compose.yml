@@ -264,6 +264,47 @@ services:
       - "traefik.http.routers.post-ms.entrypoints=web"
       - "traefik.http.services.post-ms.loadbalancer.server.port=8086"
 
+  notification-ms:
+    build: ./notification-service
+    container_name: notification-ms
+    ports:
+      - "8085:8085" # Optional for direct testing
+    environment:
+      - NOTIFICATION_DB_IP=notification-db
+      - NOTIFICATION_DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - NOTIFICATION_DB=${NOTIFICATION_DB}
+      - BROKER_HOST=rabbitmq
+      - BROKER_PORT=5672
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      notification-db:
+        condition: service_started
+    networks:
+      - docker_network
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+
+      # --- WebSocket endpoint (auth via STOMP headers, no Traefik forward-auth) ---
+      - "traefik.http.routers.notification-ws.rule=PathPrefix(`/api/notifications/ws`)"
+      - "traefik.http.routers.notification-ws.service=notification-ms"
+      - "traefik.http.routers.notification-ws.middlewares=strip-api"
+      - "traefik.http.routers.notification-ws.entrypoints=web"
+      - "traefik.http.routers.notification-ws.priority=100"
+
+      # --- REST API (JWT required) ---
+      - "traefik.http.routers.notification-ms.rule=PathPrefix(`/api/notifications`)"
+      - "traefik.http.routers.notification-ms.service=notification-ms"
+      - "traefik.http.routers.notification-ms.middlewares=strip-api, cors-frontend, forward-auth"
+      - "traefik.http.routers.notification-ms.entrypoints=web"
+      - "traefik.http.routers.notification-ms.priority=50"
+
+      - "traefik.http.services.notification-ms.loadbalancer.server.port=8085"
+
   # --- Databases ---
   user-db:
     image: postgres:16
@@ -334,13 +375,28 @@ services:
       - post_db_data:/var/lib/postgresql/data
     networks:
       - docker_network
-  
+
+  notification-db:
+    image: postgres:16
+    container_name: notification-db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${NOTIFICATION_DB}
+    ports:
+      - "6006:5432"
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    networks:
+      - docker_network
+
 volumes:
   user_db_data:
   credential_db_data:
   order_db_data:
   product_db_data:
   post_db_data:
+  notification_db_data:
 
 networks:
   docker_network:
