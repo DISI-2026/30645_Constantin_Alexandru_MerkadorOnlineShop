@@ -3,8 +3,10 @@ package com.merkador.productservice.presentation.controller;
 import com.merkador.productservice.core.domain.Product;
 import com.merkador.productservice.core.domain.ProductStatus;
 import com.merkador.productservice.core.port.in.ProductFilter;
+import com.merkador.productservice.core.port.in.ProductImageUseCase;
 import com.merkador.productservice.core.port.in.ProductUseCase;
 import com.merkador.productservice.infrastructure.security.AuthenticatedUser;
+import com.merkador.productservice.infrastructure.storage.LocalFileStorageService;
 import com.merkador.productservice.presentation.dto.request.CreateProductRequest;
 import com.merkador.productservice.presentation.dto.request.UpdatePriceRequest;
 import com.merkador.productservice.presentation.dto.request.UpdateProductRequest;
@@ -23,6 +25,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,6 +36,8 @@ public class ProductController {
     private final ProductUseCase productUseCase;
     private final PresentationMapper mapper;
 
+    private final ProductImageUseCase imageUseCase;
+    private final LocalFileStorageService fileStorageService;
     // ================================================================
     // PUBLIC ENDPOINTS
     // ================================================================
@@ -153,6 +158,17 @@ public class ProductController {
             @PathVariable UUID id,
             @AuthenticationPrincipal AuthenticatedUser user) {
 
+        // Get all image URLs for the product
+        List<String> imageUrls = imageUseCase.getImagesForProduct(id).stream()
+                .map(com.merkador.productservice.core.domain.ProductImage::getUrl)
+                .toList();
+
+        // Delete all images associated with the product
+        for (String url : imageUrls) {
+            fileStorageService.deleteProductImageByUrl(url);
+        }
+
+        // Delete the product
         productUseCase.deleteProduct(id, user.getUserId());
         return ResponseEntity.ok(ApiResponse.ok(null, "Product deleted successfully"));
     }

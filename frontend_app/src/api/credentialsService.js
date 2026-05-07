@@ -77,17 +77,17 @@ export const logout = async (refreshToken) => {
     });
 };
 
-export const deactivate = async (email) => {
-    return fetchWrapper(`${BASE_URL}/deactivate-account?email=${encodeURIComponent(email)}`, {
+export const deactivate = async (id) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/deactivate`, {
         method: 'PATCH',
     });
 };
 
-export const switchRole = async (email, targetRole) => {
-    return fetchWrapper(`${BASE_URL}/switch-role`, {
+export const switchRole = async (id, targetRole) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/switch-role`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, targetRole }),
+        body: JSON.stringify({ targetRole }),
     });
 };
 

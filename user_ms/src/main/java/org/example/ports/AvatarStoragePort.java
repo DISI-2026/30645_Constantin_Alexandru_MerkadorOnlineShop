@@ -5,4 +5,5 @@ import java.util.UUID;
 
 public interface AvatarStoragePort {
     String uploadAvatar(UUID userId, MultipartFile file);
+    void deleteAvatarByUrl(String avatarUrl);
 }

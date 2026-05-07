@@ -1,4 +1,4 @@
-package org.example.orderservice.config;
+package org.example.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -14,8 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-@EnableMethodSecurity 
-public class  SecurityConfig {
+@EnableMethodSecurity // needed to use @PreAuthorize, for role-based authorization for specific endpoints
+public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -24,10 +24,8 @@ public class  SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/cart/**").authenticated()
-                        .requestMatchers("/orders/**").authenticated()
-                        .anyRequest().denyAll()
+                        // We permit all requests, since authentication is handled by Traefik in cooperation with a specialized endpoint
+                        .anyRequest().permitAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

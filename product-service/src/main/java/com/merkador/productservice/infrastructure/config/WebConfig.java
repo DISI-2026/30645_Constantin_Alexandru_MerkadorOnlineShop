@@ -5,23 +5,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+    private final String uploadRoot;
 
-    @Value("${app.upload.product-images-dir}")
-    private String uploadDir;
-
-    @Value("${app.upload.product-images-url-prefix}")
-    private String urlPrefix;
-
+    public WebConfig(@Value("${app.storage.upload-root:./upload_data}") String uploadRoot) {
+        this.uploadRoot = uploadRoot;
+    }
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-
-        registry.addResourceHandler(urlPrefix + "/**")
-                .addResourceLocations(uploadPath.toUri().toString());
+        registry.addResourceHandler("/uploads/products/**")
+                .addResourceLocations("file:" + uploadRoot + "/products/");
     }
 }

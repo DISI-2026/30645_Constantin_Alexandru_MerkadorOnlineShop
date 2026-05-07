@@ -180,9 +180,9 @@ public class CredentialService {
         LOGGER.info("Account reactivated successfully for user {}", credential.getId());
     }
 
-    public void deactivateAccount(String email) {
-        Credential credential = credentialRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(email));
+    public void deactivateAccount(UUID id) {
+        Credential credential = credentialRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
 
         credential.setStatus(AccountStatus.DEACTIVATED);
         credentialRepository.save(credential);
@@ -193,9 +193,9 @@ public class CredentialService {
         refreshTokenService.revokeToken(refreshToken);
     }
 
-    public String switchRole(String email, String targetRole) {
-        Credential credential = credentialRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(email));
+    public String switchRole(UUID id, String targetRole) {
+        Credential credential = credentialRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
 
         List<String> roles = credential.getRoles().stream()
                 .map(UserRole::getRole)

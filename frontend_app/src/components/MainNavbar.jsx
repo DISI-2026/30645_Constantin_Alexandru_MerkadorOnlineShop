@@ -1,15 +1,14 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const MainNavbar = ({ pageTitle }) => {
     const { logout, activeRole, roles, switchRole } = useAuth();
-    const navigate = useNavigate();
 
     const handleRoleChange = (e) => {
         const selectedRole = e.target.value;
         if (selectedRole !== activeRole) {
-            switchRole(selectedRole, navigate);
+            switchRole(selectedRole);
         }
     };
 

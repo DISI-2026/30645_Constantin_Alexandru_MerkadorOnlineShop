@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,18 +39,21 @@ public class UserProfileService {
         this.avatarStoragePort = avatarStoragePort;
     }
 
+    @Transactional
     public List<UserProfileRespDTO> findUsers(){
         return userProfileRepository.findAll().stream()
                 .map(UserProfileBuilder::toUserRespDTO)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public UserProfileRespDTO findUserById(UUID id){
         UserProfile user = userProfileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
         return UserProfileBuilder.toUserRespDTO(user);
     }
 
+    @Transactional
     public void update(UUID id, UserProfileReqDTO dto) {
         UserProfile userProfile = userProfileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
@@ -63,7 +65,7 @@ public class UserProfileService {
         // we keep the old data if any, if the current edits are null
         if (dto.getPhone() != null) userProfile.setPhone(dto.getPhone());
         if (dto.getAvatarUrl() != null) userProfile.setAvatarUrl(dto.getAvatarUrl());
-        if(dto.getPreferredCategories() != null && dto.getPreferredCategories().size() > 0)
+        if(dto.getPreferredCategories() != null)
             userProfile.setPreferredCategories(dto.getPreferredCategories());
 
         // updatedDate will automatically be set by Spring Data
@@ -87,6 +89,7 @@ public class UserProfileService {
     // SELLER PROFILE LOGIC
     // ==========================================
 
+    @Transactional
     public SellerProfileRespDTO getSellerProfile(UUID userId) {
         SellerProfile seller = sellerProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Seller profile not found for user " + userId));
@@ -124,6 +127,7 @@ public class UserProfileService {
         LOGGER.info("Seller profile created/updated for user with id = {}", userId);
     }
 
+    @Transactional
     public List<SellerProfileRespDTO> getUnverifiedSellers() {
         return sellerProfileRepository.findByVerifiedFalse().stream()
                 .map(seller -> {
@@ -153,6 +157,7 @@ public class UserProfileService {
     // ==========================================
     // ADDRESS BOOK LOGIC
     // ==========================================
+    @Transactional
     public List<AddressBookRespDTO> getUserAddresses(UUID userId) {
         return addressBookRepository.findAllByUserProfileUserId(userId).stream()
                 .map(addr -> {
@@ -169,6 +174,7 @@ public class UserProfileService {
                 }).collect(Collectors.toList());
     }
 
+    @Transactional
     public AddressBookRespDTO getDefaultUserAddress(UUID userId) {
         AddressBook ad = addressBookRepository.findByUserProfileUserIdAndIsDefaultTrue(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("No default address found for user: " + userId));

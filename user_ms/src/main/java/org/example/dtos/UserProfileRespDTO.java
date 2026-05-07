@@ -1,6 +1,7 @@
 package org.example.dtos;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 public class UserProfileRespDTO {
@@ -19,9 +20,11 @@ public class UserProfileRespDTO {
 
     private LocalDateTime updatedDate;
 
+    private Set<String> preferredCategories;
+
     public UserProfileRespDTO(){}
 
-    public UserProfileRespDTO(UUID userId, String firstName, String lastName, String avatarUrl, String phone, LocalDateTime createdDate, LocalDateTime updatedDate) {
+    public UserProfileRespDTO(UUID userId, String firstName, String lastName, String avatarUrl, String phone, LocalDateTime createdDate, LocalDateTime updatedDate, Set<String> preferredCategories) {
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -29,6 +32,7 @@ public class UserProfileRespDTO {
         this.phone = phone;
         this.createdDate = createdDate;
         this.updatedDate = updatedDate;
+        this.preferredCategories = preferredCategories;
     }
 
     public UUID getUserId() {
@@ -85,5 +89,13 @@ public class UserProfileRespDTO {
 
     public void setUpdatedDate(LocalDateTime updatedDate) {
         this.updatedDate = updatedDate;
+    }
+
+    public Set<String> getPreferredCategories() {
+        return preferredCategories;
+    }
+
+    public void setPreferredCategories(Set<String> preferredCategories) {
+        this.preferredCategories = preferredCategories;
     }
 }

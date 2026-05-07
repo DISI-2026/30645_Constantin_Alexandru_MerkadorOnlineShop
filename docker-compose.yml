@@ -18,6 +18,8 @@ services:
       - docker_network
     restart: unless-stopped
     labels:
+      - "traefik.enable=true"
+      
        # 1) Middleware to strip /api prefix
       - "traefik.http.middlewares.strip-api.stripprefix.prefixes=/api"
 
@@ -26,6 +28,10 @@ services:
       - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
       - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowheaders=Authorization,Content-Type"
       - "traefik.http.middlewares.cors-frontend.headers.accesscontrolallowcredentials=true"
+
+      # Declare the forward auth middleware that will be used by both user-ms and credential-ms for protected routes. This will call our /credentials/validate endpoint to check JWT validity.
+      - "traefik.http.middlewares.forward-auth.forwardauth.address=http://credential-ms:8081/credentials/validate"
+      - "traefik.http.middlewares.forward-auth.forwardauth.trustForwardHeader=true"
 
   rabbitmq:
     image: rabbitmq:3.12-management
@@ -72,7 +78,7 @@ services:
     build: ./user_ms
     container_name: user-ms
     volumes:
-      - ./upload_data:/upload_data # Mount local directory for user uploads (like avatars)
+      - upload_data:/upload_data
     ports:
       - "8082:8082" # Optional for direct testing
     environment:
@@ -83,6 +89,8 @@ services:
       - DB_DBNAME=${USER_DB}
       - BROKER_HOST=${BROKER_HOST}
       - BROKER_PORT=${BROKER_PORT}
+      - JWT_SECRET=${JWT_SECRET}
+      - UPLOAD_ROOT=${CONTAINER_UPLOAD_ROOT}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -135,10 +143,6 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-
-      # Declare the forward auth middleware that will be used by both user-ms and credential-ms for protected routes. This will call our /credentials/validate endpoint to check JWT validity.
-      - "traefik.http.middlewares.forward-auth.forwardauth.address=http://credential-ms:8081/credentials/validate"
-      - "traefik.http.middlewares.forward-auth.forwardauth.trustForwardHeader=true"
 
       # --- Public routes (no JWT) ---
       - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`) || PathPrefix(`/api/credentials/reactivate-account`)"
@@ -195,6 +199,8 @@ services:
   product-ms:
     build: ./product-service
     container_name: product-ms
+    volumes:
+      - upload_data:/upload_data
     ports:
       - "8084:8084"
     environment:
@@ -203,6 +209,7 @@ services:
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_DBNAME=${PRODUCT_DB}
+      - UPLOAD_ROOT=${CONTAINER_UPLOAD_ROOT}
       - BROKER_HOST=${BROKER_HOST}
       - BROKER_PORT=${BROKER_PORT}
       - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
@@ -341,6 +348,7 @@ volumes:
   order_db_data:
   product_db_data:
   post_db_data:
+  upload_data:
 
 networks:
   docker_network:

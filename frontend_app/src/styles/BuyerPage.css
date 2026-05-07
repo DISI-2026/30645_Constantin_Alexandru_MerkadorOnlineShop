@@ -144,3 +144,44 @@
     object-fit: cover;
     border-radius: 50%;
 }
+
+/* --- Category Tags (Capsules) --- */
+.category-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.category-tag {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.category-tag.read-only {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+}
+
+.category-tag.toggleable {
+    background-color: #ffffff;
+    color: #6c757d;
+    border: 1px solid #ced4da;
+    cursor: pointer;
+}
+
+.category-tag.toggleable:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.category-tag.toggleable.selected {
+    background-color: #2ecc71;
+    color: #ffffff;
+    border: 1px solid #27ae60;
+}

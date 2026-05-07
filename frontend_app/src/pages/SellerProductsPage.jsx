@@ -201,6 +201,7 @@ const SellerProductsPage = () => {
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
+    const submittedFiles = Array.from(e.currentTarget.elements.images?.files || []);
 
     if (!productForm.categoryId) {
       alert('Please choose a category.');
@@ -228,11 +229,11 @@ const SellerProductsPage = () => {
         throw new Error('The product was created, but no product ID was returned.');
       }
 
-      if (productForm.images.length > 0) {
-        for (let i = 0; i < productForm.images.length; i += 1) {
+      if (submittedFiles.length > 0) {
+        for (let i = 0; i < submittedFiles.length; i += 1) {
           await productService.addProductImage(
             createdProduct.id,
-            productForm.images[i],
+            submittedFiles[i],
             '',
             i
           );

@@ -11,6 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.example.ports.AvatarStoragePort;
 import java.util.UUID;
 
 @Service
@@ -18,9 +19,11 @@ public class UserSyncConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(UserSyncConsumer.class);
     private final UserProfileRepository userProfileRepository;
+    private final AvatarStoragePort avatarStoragePort;
 
-    public UserSyncConsumer(UserProfileRepository userProfileRepository) {
+    public UserSyncConsumer(UserProfileRepository userProfileRepository, AvatarStoragePort avatarStoragePort) {
         this.userProfileRepository = userProfileRepository;
+        this.avatarStoragePort = avatarStoragePort;
     }
 
     @RabbitListener(queues = "user-profile-queue")
@@ -62,6 +65,7 @@ public class UserSyncConsumer {
     private void handleUserDeleted(UUID userId) {
         LOGGER.info("Deleting profile for user ID: {}", userId);
         userProfileRepository.deleteById(userId);
+        avatarStoragePort.deleteAvatarByUrl(userId.toString());
     }
 
     /**
