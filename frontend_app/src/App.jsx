@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate, Navigate } from 'react-route
 
 // Core Auth Imports
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { configureFetchWrapper } from './utils/fetchWrapper';
 import ProtectedRoute from './routes/ProtectedRoute';
 
@@ -47,6 +48,7 @@ const PublicOnly = ({ children }) => {
 const App = () => (
     <BrowserRouter>
         <AuthProvider>
+            <NotificationProvider>
             <AppConfigurator>
                 <Routes>
                     {/* PUBLIC ROUTES */}
@@ -83,6 +85,7 @@ const App = () => (
                     <Route path="*" element={<NotFoundPage />} />
                 </Routes>
             </AppConfigurator>
+            </NotificationProvider>
         </AuthProvider>
     </BrowserRouter>
 );

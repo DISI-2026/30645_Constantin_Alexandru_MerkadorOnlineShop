@@ -3,6 +3,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import '../styles/BrowseNavbar.css';
+import NotificationBell from './NotificationBell';
 
 const BrowseNavbar = ({ pageTitle }) => {
     const { activeRole, logout } = useAuth();
@@ -28,6 +29,8 @@ const BrowseNavbar = ({ pageTitle }) => {
             </h1>
 
             <div className="browse-nav-buttons">
+                <NotificationBell />
+
                 {/* Dynamic Dashboard Button */}
                 <Link to={getDashboardRoute()} style={{ textDecoration: 'none' }}>
                     <button className="browse-action-button browse-dashboard-btn">
