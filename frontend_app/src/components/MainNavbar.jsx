@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import NotificationBell from './NotificationBell';
 
 const MainNavbar = ({ pageTitle }) => {
     const { logout, activeRole, roles, switchRole } = useAuth();
@@ -57,6 +58,8 @@ const MainNavbar = ({ pageTitle }) => {
                         </select>
                     </div>
                 )}
+
+                <NotificationBell />
 
                 <Link to="/browse" style={{textDecoration: 'none'}}>
                     <button className="action-button" style={{
