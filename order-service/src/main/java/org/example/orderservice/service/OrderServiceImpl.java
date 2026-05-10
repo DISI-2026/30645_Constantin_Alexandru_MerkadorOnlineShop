@@ -57,6 +57,7 @@ public class OrderServiceImpl implements OrderService {
                     line.setProductTitle(itemDto.getProductTitle());
                     line.setUnitPrice(itemDto.getUnitPrice());
                     line.setQuantity(itemDto.getQuantity());
+                    line.setSellerId(itemDto.getSellerId());
                     line.setSubtotal(itemDto.getUnitPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())));
                     return line;
                 })
@@ -99,6 +100,7 @@ public class OrderServiceImpl implements OrderService {
                         .productTitle(cartItem.getProductTitle())
                         .unitPrice(cartItem.getUnitPrice())
                         .quantity(cartItem.getQuantity())
+                        .sellerId(cartItem.getSellerId())
                         .build())
                 .collect(Collectors.toList());
 
@@ -142,8 +144,23 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('SELLER')")
+    public List<OrderResponseDto> getOrdersForSeller() {
+        UUID sellerId = getCurrentUserId();
+        return orderRepository.findOrdersBySellerId(sellerId).stream()
+                .map(OrderMapper::toDto)
+               .peek(dto -> dto.setItems(
+                        dto.getItems().stream()
+                                .filter(item -> sellerId.equals(item.getSellerId()))
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
     public OrderResponseDto updateOrderStatus(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));

@@ -34,6 +34,7 @@ public class OrderMapper {
                 .productTitle(orderLine.getProductTitle())
                 .unitPrice(orderLine.getUnitPrice())
                 .quantity(orderLine.getQuantity())
+                .sellerId(orderLine.getSellerId())
                 .build();
     }
 

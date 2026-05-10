@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
+import { orderService } from '../api/orderService';
 import '../styles/SellerProductsPage.css';
 
 const extractList = (response) => {
@@ -29,13 +30,16 @@ const getProductFromResponse = (response) => {
 
 const SellerProductsPage = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('products'); // 'products' or 'orders'
+
+  // --- Products State ---
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedProductImages, setSelectedProductImages] = useState([]);
 
-  const [loading, setLoading] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
   const [creating, setCreating] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -53,6 +57,11 @@ const SellerProductsPage = () => {
   const [imageForm, setImageForm] = useState({
     file: null,
   });
+
+  // --- Orders State ---
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const getErrorMessage = (error, fallback) => {
     return (
@@ -85,7 +94,7 @@ const SellerProductsPage = () => {
 
   const loadMyProducts = async () => {
     try {
-      setLoading(true);
+      setLoadingProducts(true);
 
       const response = await productService.getMyProducts({
         page: 0,
@@ -125,7 +134,7 @@ const SellerProductsPage = () => {
         )
       );
     } finally {
-      setLoading(false);
+      setLoadingProducts(false);
     }
   };
 
@@ -154,10 +163,26 @@ const SellerProductsPage = () => {
     }
   };
 
-  useEffect(() => {
-    loadCategories();
-    loadMyProducts();
+  const fetchOrders = useCallback(async () => {
+    try {
+        setLoadingOrders(true);
+        const response = await orderService.getOrdersForSeller();
+        setOrders(response.data || response || []);
+    } catch (error) {
+        console.error("Error fetching orders:", error);
+    } finally {
+        setLoadingOrders(false);
+    }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'products') {
+        loadCategories();
+        loadMyProducts();
+    } else if (activeTab === 'orders') {
+        fetchOrders();
+    }
+  }, [activeTab, fetchOrders]);
 
   const handleProductChange = (e) => {
     const { name, value, files } = e.target;
@@ -495,309 +520,494 @@ const SellerProductsPage = () => {
     }
   };
 
+  const handleOrderStatusChange = async (orderId, newStatus) => {
+    try {
+        await orderService.updateOrderStatusSeller(orderId, newStatus);
+        alert(`Order status updated to ${newStatus}`);
+        fetchOrders(); // Refresh the list
+    } catch (error) {
+        alert("Failed to update status: " + error.message);
+    }
+  };
+
+  const handleViewOrderDetails = async (orderId) => {
+    try {
+        const response = await orderService.getOrderById(orderId);
+        setSelectedOrder(response.data || response);
+    } catch (error) {
+        alert("Failed to load order details.");
+        console.error(error);
+    }
+  };
+
+  const closeOrderModal = () => {
+    setSelectedOrder(null);
+  };
+
+  const tabStyle = (isActive) => ({
+    padding: '1rem 2rem',
+    border: 'none',
+    borderBottom: isActive ? '3px solid #f39c12' : '3px solid transparent',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontWeight: isActive ? 700 : 500,
+    fontSize: '1.1rem',
+    color: isActive ? '#f39c12' : '#6c757d',
+    transition: 'all 0.2s ease',
+    marginBottom: '20px'
+  });
+
   return (
     <div className="seller-products-page">
-      <div className="seller-products-container">
-        <MainNavbar />
+      <div className="seller-products-container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
+        <MainNavbar pageTitle="Seller Dashboard" />
 
-        <section className="seller-products-header-card">
-          <div>
-            <span className="seller-products-eyebrow">Seller mode</span>
-            <h2>My products</h2>
-            <p>
-              Add products, upload images, and manage stock and pricing for your listings.
-            </p>
-          </div>
+        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #ddd', marginBottom: '20px' }}>
+            <button style={tabStyle(activeTab === 'products')} onClick={() => setActiveTab('products')}>
+                My Products
+            </button>
+            <button style={tabStyle(activeTab === 'orders')} onClick={() => setActiveTab('orders')}>
+                Received Orders
+            </button>
+        </div>
 
-          <button type="button" className="seller-products-refresh" onClick={loadMyProducts}>
-            Refresh
-          </button>
-        </section>
-
-        <form className="seller-product-form" onSubmit={handleCreateProduct}>
-          <h3>Add new product</h3>
-
-          <div className="seller-form-grid">
-            <div className="seller-form-field seller-form-field-wide">
-              <label>Product title</label>
-              <input
-                name="title"
-                placeholder="e.g. Lenovo IdeaPad Laptop"
-                value={productForm.title}
-                onChange={handleProductChange}
-                required
-              />
-            </div>
-
-            <div className="seller-form-field seller-form-field-wide">
-              <label>Slug</label>
-              <div className="seller-slug-row">
-                <input
-                  name="slug"
-                  placeholder="e.g. lenovo-ideapad-laptop"
-                  value={productForm.slug}
-                  onChange={handleProductChange}
-                  required
-                />
-
-                <button type="button" onClick={handleGenerateSlug}>
-                  Generate
-                </button>
-              </div>
-            </div>
-
-            <div className="seller-form-field seller-form-field-wide">
-              <label>Description</label>
-              <textarea
-                name="description"
-                placeholder="Product description"
-                value={productForm.description}
-                onChange={handleProductChange}
-              />
-            </div>
-
-            <div className="seller-form-field">
-              <label>Price</label>
-              <input
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="2500"
-                value={productForm.price}
-                onChange={handleProductChange}
-                required
-              />
-            </div>
-
-            <div className="seller-form-field">
-              <label>Currency</label>
-              <input
-                name="currency"
-                placeholder="RON"
-                value={productForm.currency}
-                onChange={handleProductChange}
-                required
-                maxLength={3}
-              />
-            </div>
-
-            <div className="seller-form-field">
-              <label>Stock</label>
-              <input
-                name="stock"
-                type="number"
-                min="0"
-                placeholder="10"
-                value={productForm.stock}
-                onChange={handleProductChange}
-                required
-              />
-            </div>
-
-            <div className="seller-form-field">
-              <label>Category</label>
-              <select
-                name="categoryId"
-                value={productForm.categoryId}
-                onChange={handleProductChange}
-                required
-              >
-                <option value="">Choose category</option>
-
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name || category.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="seller-form-field seller-form-field-wide">
-              <label>Product images</label>
-              <input
-                name="images"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                multiple
-                onChange={handleProductChange}
-              />
-
-              {productForm.images.length > 0 && (
-                <small>
-                  You selected {productForm.images.length} image(s).
-                </small>
-              )}
-            </div>
-          </div>
-
-          {categories.length === 0 && (
-            <div className="seller-warning">
-              No categories exist yet. Categories can be created by an admin or directly in the database.
-            </div>
-          )}
-
-          <button
-            className="seller-submit-btn"
-            type="submit"
-            disabled={creating || categories.length === 0}
-          >
-            {creating ? 'Adding product and images...' : 'Add product'}
-          </button>
-        </form>
-
-        <section className="seller-products-list-section">
-          <div className="seller-section-title-row">
-            <div>
-              <h3>My product list</h3>
-              <p>{products.length} uploaded products</p>
-            </div>
-          </div>
-
-          {loading && <p className="seller-empty-text">Loading products...</p>}
-
-          {!loading && products.length === 0 && (
-            <p className="seller-empty-text">You have not added any products yet.</p>
-          )}
-
-          <div className="seller-products-grid">
-            {products.map((product) => (
-              <article className="seller-product-card" key={product.id}>
-                <div className="seller-product-image">
-                  {product.images?.length > 0 && product.images[0]?.url ? (
-                    <img
-                      src={getProductImageUrl(product.images[0].url)}
-                      alt={product.title}
-                    />
-                  ) : (
-                    <span>No image</span>
-                  )}
-                </div>
-
-                <div className="seller-product-body">
-                  <div className="seller-product-title-row">
-                    <h4>{product.title}</h4>
-                    <span className={`seller-status ${String(product.status || '').toLowerCase()}`}>
-                      {product.status || 'N/A'}
-                    </span>
+        {activeTab === 'products' && (
+            <>
+                <section className="seller-products-header-card">
+                  <div>
+                    <span className="seller-products-eyebrow">Inventory</span>
+                    <h2>My products</h2>
+                    <p>
+                      Add products, upload images, and manage stock and pricing for your listings.
+                    </p>
                   </div>
 
-                  <p className="seller-product-description">
-                    {product.description || 'No description'}
-                  </p>
+                  <button type="button" className="seller-products-refresh" onClick={loadMyProducts}>
+                    Refresh
+                  </button>
+                </section>
 
-                  <div className="seller-product-meta">
-                    <strong>
-                      {product.price} {product.currency || 'RON'}
-                    </strong>
+                <form className="seller-product-form" onSubmit={handleCreateProduct}>
+                  <h3>Add new product</h3>
 
-                    <span>Stock: {product.stock}</span>
-                    
-                    {/* Add rating info here if desired */}
-                    <span style={{ marginLeft: '10px', color: '#f39c12', fontWeight: 'bold' }}>
-                        ★ {product.averageRating ?? product.rating ?? '0.0'} ({product.reviewCount || 0})
-                    </span>
+                  <div className="seller-form-grid">
+                    <div className="seller-form-field seller-form-field-wide">
+                      <label>Product title</label>
+                      <input
+                        name="title"
+                        placeholder="e.g. Lenovo IdeaPad Laptop"
+                        value={productForm.title}
+                        onChange={handleProductChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="seller-form-field seller-form-field-wide">
+                      <label>Slug</label>
+                      <div className="seller-slug-row">
+                        <input
+                          name="slug"
+                          placeholder="e.g. lenovo-ideapad-laptop"
+                          value={productForm.slug}
+                          onChange={handleProductChange}
+                          required
+                        />
+
+                        <button type="button" onClick={handleGenerateSlug}>
+                          Generate
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="seller-form-field seller-form-field-wide">
+                      <label>Description</label>
+                      <textarea
+                        name="description"
+                        placeholder="Product description"
+                        value={productForm.description}
+                        onChange={handleProductChange}
+                      />
+                    </div>
+
+                    <div className="seller-form-field">
+                      <label>Price</label>
+                      <input
+                        name="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="2500"
+                        value={productForm.price}
+                        onChange={handleProductChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="seller-form-field">
+                      <label>Currency</label>
+                      <input
+                        name="currency"
+                        placeholder="RON"
+                        value={productForm.currency}
+                        onChange={handleProductChange}
+                        required
+                        maxLength={3}
+                      />
+                    </div>
+
+                    <div className="seller-form-field">
+                      <label>Stock</label>
+                      <input
+                        name="stock"
+                        type="number"
+                        min="0"
+                        placeholder="10"
+                        value={productForm.stock}
+                        onChange={handleProductChange}
+                        required
+                      />
+                    </div>
+
+                    <div className="seller-form-field">
+                      <label>Category</label>
+                      <select
+                        name="categoryId"
+                        value={productForm.categoryId}
+                        onChange={handleProductChange}
+                        required
+                      >
+                        <option value="">Choose category</option>
+
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name || category.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="seller-form-field seller-form-field-wide">
+                      <label>Product images</label>
+                      <input
+                        name="images"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        onChange={handleProductChange}
+                      />
+
+                      {productForm.images.length > 0 && (
+                        <small>
+                          You selected {productForm.images.length} image(s).
+                        </small>
+                      )}
+                    </div>
                   </div>
 
-                  <p className="seller-product-slug">{product.slug}</p>
-
-                  <div className="seller-product-actions">
-                    <button type="button" onClick={() => navigate(`/product/${product.id}`)} style={{ backgroundColor: '#f39c12', color: 'white', border: 'none' }}>
-                      View & Reply Reviews
-                    </button>
-
-                    <button type="button" onClick={() => loadProductImages(product)}>
-                      Images
-                    </button>
-
-                    <button type="button" onClick={() => handleUpdateStock(product.id)}>
-                      Stock
-                    </button>
-
-                    <button type="button" onClick={() => handleUpdatePrice(product.id)}>
-                      Price
-                    </button>
-
-                    <button type="button" onClick={() => handleActivate(product.id)}>
-                      Activate
-                    </button>
-
-                    <button type="button" onClick={() => handleDeactivate(product.id)}>
-                      Deactivate
-                    </button>
-
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => handleDeleteProduct(product.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {selectedProduct && (
-          <section className="seller-product-details">
-            <div className="seller-section-title-row">
-              <div>
-                <h3>Product images: {selectedProduct.title}</h3>
-                <p>You can add or delete images for the selected product.</p>
-              </div>
-
-              <button
-                type="button"
-                className="seller-close-details"
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setSelectedProductImages([]);
-                }}
-              >
-                Close
-              </button>
-            </div>
-
-            <form className="seller-add-image-form" onSubmit={handleAddImage}>
-              <input
-                name="file"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
-                required
-              />
-
-              <button type="submit" disabled={uploadingImage}>
-                {uploadingImage ? 'Uploading...' : 'Add image'}
-              </button>
-            </form>
-
-            {selectedProductImages.length === 0 && (
-              <p className="seller-empty-text">This product has no images.</p>
-            )}
-
-            <div className="seller-images-grid">
-              {selectedProductImages.map((image) => (
-                <article className="seller-image-card" key={image.id}>
-                  {image.url && (
-                    <img
-                      src={getProductImageUrl(image.url)}
-                      alt="Product"
-                    />
+                  {categories.length === 0 && (
+                    <div className="seller-warning">
+                      No categories exist yet. Categories can be created by an admin or directly in the database.
+                    </div>
                   )}
 
                   <button
-                    type="button"
-                    onClick={() => handleDeleteImage(image.id)}
+                    className="seller-submit-btn"
+                    type="submit"
+                    disabled={creating || categories.length === 0}
                   >
-                    Delete image
+                    {creating ? 'Adding product and images...' : 'Add product'}
                   </button>
-                </article>
-              ))}
+                </form>
+
+                <section className="seller-products-list-section">
+                  <div className="seller-section-title-row">
+                    <div>
+                      <h3>My product list</h3>
+                      <p>{products.length} uploaded products</p>
+                    </div>
+                  </div>
+
+                  {loadingProducts && <p className="seller-empty-text">Loading products...</p>}
+
+                  {!loadingProducts && products.length === 0 && (
+                    <p className="seller-empty-text">You have not added any products yet.</p>
+                  )}
+
+                  <div className="seller-products-grid">
+                    {products.map((product) => (
+                      <article className="seller-product-card" key={product.id}>
+                        <div className="seller-product-image">
+                          {product.images?.length > 0 && product.images[0]?.url ? (
+                            <img
+                              src={getProductImageUrl(product.images[0].url)}
+                              alt={product.title}
+                            />
+                          ) : (
+                            <span>No image</span>
+                          )}
+                        </div>
+
+                        <div className="seller-product-body">
+                          <div className="seller-product-title-row">
+                            <h4>{product.title}</h4>
+                            <span className={`seller-status ${String(product.status || '').toLowerCase()}`}>
+                              {product.status || 'N/A'}
+                            </span>
+                          </div>
+
+                          <p className="seller-product-description">
+                            {product.description || 'No description'}
+                          </p>
+
+                          <div className="seller-product-meta">
+                            <strong>
+                              {product.price} {product.currency || 'RON'}
+                            </strong>
+
+                            <span>Stock: {product.stock}</span>
+                            
+                            <span style={{ marginLeft: '10px', color: '#f39c12', fontWeight: 'bold' }}>
+                                ★ {product.avgRating ?? product.rating ?? '0.0'} ({product.reviewCount || 0})
+                            </span>
+                          </div>
+
+                          <p className="seller-product-slug">{product.slug}</p>
+
+                          <div className="seller-product-actions">
+                            <button type="button" onClick={() => navigate(`/product/${product.id}`)} style={{ backgroundColor: '#f39c12', color: 'white', border: 'none' }}>
+                              View & Reply Reviews
+                            </button>
+
+                            <button type="button" onClick={() => loadProductImages(product)}>
+                              Images
+                            </button>
+
+                            <button type="button" onClick={() => handleUpdateStock(product.id)}>
+                              Stock
+                            </button>
+
+                            <button type="button" onClick={() => handleUpdatePrice(product.id)}>
+                              Price
+                            </button>
+
+                            <button type="button" onClick={() => handleActivate(product.id)}>
+                              Activate
+                            </button>
+
+                            <button type="button" onClick={() => handleDeactivate(product.id)}>
+                              Deactivate
+                            </button>
+
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => handleDeleteProduct(product.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                {selectedProduct && (
+                  <section className="seller-product-details">
+                    <div className="seller-section-title-row">
+                      <div>
+                        <h3>Product images: {selectedProduct.title}</h3>
+                        <p>You can add or delete images for the selected product.</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="seller-close-details"
+                        onClick={() => {
+                          setSelectedProduct(null);
+                          setSelectedProductImages([]);
+                        }}
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <form className="seller-add-image-form" onSubmit={handleAddImage}>
+                      <input
+                        name="file"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageChange}
+                        required
+                      />
+
+                      <button type="submit" disabled={uploadingImage}>
+                        {uploadingImage ? 'Uploading...' : 'Add image'}
+                      </button>
+                    </form>
+
+                    {selectedProductImages.length === 0 && (
+                      <p className="seller-empty-text">This product has no images.</p>
+                    )}
+
+                    <div className="seller-images-grid">
+                      {selectedProductImages.map((image) => (
+                        <article className="seller-image-card" key={image.id}>
+                          {image.url && (
+                            <img
+                              src={getProductImageUrl(image.url)}
+                              alt="Product"
+                            />
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(image.id)}
+                          >
+                            Delete image
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+            </>
+        )}
+
+        {activeTab === 'orders' && (
+            <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', padding: '2rem', minHeight: '60vh' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div>
+                        <h2 style={{ color: '#2c3e50', margin: 0 }}>Received Orders</h2>
+                        <p style={{ color: '#555', fontSize: '1.05rem', margin: 0 }}>
+                            Manage the orders that contain your products.
+                        </p>
+                    </div>
+                    <button className="btn btn-outline-secondary" onClick={fetchOrders}>
+                        Refresh List
+                    </button>
+                </div>
+
+                {loadingOrders ? (
+                    <p>Loading orders...</p>
+                ) : orders.length === 0 ? (
+                    <p>You have not received any orders yet.</p>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table table-bordered table-hover">
+                            <thead className="table-light">
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Your Products</th>
+                                    <th>Delivery Address</th>
+                                    <th>Order Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {orders.map(order => (
+                                    <tr key={order.id}>
+                                        <td><small>{order.id}</small></td>
+                                        <td>{new Date(order.placedAt).toLocaleString()}</td>
+                                        <td>
+                                            <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                                                {order.items?.map(item => (
+                                                    <li key={item.productId}>
+                                                        {item.productTitle} (x{item.quantity})
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </td>
+                                        <td>{order.deliveryAddress}</td>
+                                        <td>
+                                            <span className={`badge bg-${order.status === 'PENDING' ? 'warning' : order.status === 'CANCELLED' ? 'danger' : 'success'}`}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="d-flex gap-2 flex-column">
+                                                <button 
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    onClick={() => {
+                                                        setSelectedOrder(order);
+                                                    }}
+                                                >
+                                                    View Details
+                                                </button>
+                                                <select 
+                                                    className="form-select form-select-sm"
+                                                    value={order.status}
+                                                    onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
+                                                    disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                                                >
+                                                    <option value="PENDING">PENDING</option>
+                                                    <option value="PROCESSING">PROCESSING</option>
+                                                    <option value="SHIPPED">SHIPPED</option>
+                                                    <option value="DELIVERED">DELIVERED</option>
+                                                    <option value="CANCELLED">CANCELLED</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
-          </section>
+        )}
+
+        {/* ORDER DETAILS MODAL FOR SELLER */}
+        {selectedOrder && activeTab === 'orders' && (
+            <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                <div className="modal-dialog modal-lg">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">Order Details</h5>
+                            <button type="button" className="btn-close" onClick={closeOrderModal}></button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="mb-3">
+                                <strong>Order ID:</strong> {selectedOrder.id} <br/>
+                                <strong>Customer ID:</strong> {selectedOrder.customerId} <br/>
+                                <strong>Overall Status:</strong> <span className={`badge bg-${selectedOrder.status === 'PENDING' ? 'warning' : selectedOrder.status === 'CANCELLED' ? 'danger' : 'success'}`}>{selectedOrder.status}</span> <br/>
+                                <strong>Date:</strong> {new Date(selectedOrder.placedAt).toLocaleString()} <br/>
+                                <strong>Delivery Address:</strong> {selectedOrder.deliveryAddress}
+                            </div>
+                            
+                            <h6>Your Items in this order:</h6>
+                            <table className="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Price</th>
+                                        <th>Qty</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedOrder.items?.map(item => (
+                                        <tr key={item.productId}>
+                                            <td>{item.productTitle} <br/><small className="text-muted">{item.productId}</small></td>
+                                            <td>${item.unitPrice.toFixed(2)}</td>
+                                            <td>{item.quantity}</td>
+                                            <td>${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            
+                            <div className="alert alert-info mt-3 py-2">
+                                <small>Note: This order may contain items from other sellers. The items listed above are only the ones provided by you.</small>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button type="button" className="btn btn-secondary" onClick={closeOrderModal}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         )}
       </div>
     </div>

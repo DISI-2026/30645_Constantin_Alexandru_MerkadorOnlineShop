@@ -43,7 +43,7 @@ const AdminPage = () => {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            await orderService.updateOrderStatus(orderId, newStatus);
+            await orderService.updateOrderStatusAdmin(orderId, newStatus);
             alert(`Order status updated to ${newStatus}`);
             fetchOrders();
         } catch (error) {

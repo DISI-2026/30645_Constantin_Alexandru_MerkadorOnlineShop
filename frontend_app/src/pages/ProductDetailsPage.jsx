@@ -71,7 +71,7 @@ const ProductDetailsPage = () => {
     const handleAddToCart = async () => {
         if (!product) return;
         try {
-            await cartService.addItemToCart(product.id, product.title, product.price, quantity);
+            await cartService.addItemToCart(product.id, product.title, product.price, quantity, product.sellerId);
             alert(`${product.title} added to cart!`);
         } catch (err) {
             console.error("Failed to add to cart", err);

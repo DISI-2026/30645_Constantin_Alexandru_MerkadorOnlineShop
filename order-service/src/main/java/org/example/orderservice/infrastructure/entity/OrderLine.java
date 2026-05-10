@@ -38,4 +38,7 @@ public class OrderLine {
 
     @Column(name = "subtotal", precision = 10, scale = 2, nullable = false)
     private BigDecimal subtotal;
+
+    @Column(name = "seller_id")
+    private UUID sellerId;
 }

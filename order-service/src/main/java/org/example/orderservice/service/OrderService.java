@@ -13,6 +13,7 @@ public interface OrderService {
     OrderResponseDto getOrderById(UUID orderId);
     List<OrderResponseDto> getAllOrders();
     List<OrderResponseDto> getAllOrdersForAdmin();
+    List<OrderResponseDto> getOrdersForSeller();
     OrderResponseDto updateOrderStatus(UUID orderId, String newStatus);
     OrderResponseDto cancelOrder(UUID orderId);
 }

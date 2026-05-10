@@ -5,10 +5,10 @@ const CART_BASE = '/api/cart';
 export const cartService = {
   getCart: () => fetchWrapper(CART_BASE),
 
-  addItemToCart: (productId, productTitle, unitPrice, quantity = 1) =>
+  addItemToCart: (productId, productTitle, unitPrice, quantity = 1, sellerId) =>
     fetchWrapper(`${CART_BASE}/items`, {
       method: 'POST',
-      body: JSON.stringify({ productId, productTitle, unitPrice, quantity }),
+      body: JSON.stringify({ productId, productTitle, unitPrice, quantity, sellerId }),
     }),
 
   updateItemQuantity: (productId, quantity) =>
