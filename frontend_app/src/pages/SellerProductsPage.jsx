@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
@@ -27,6 +28,7 @@ const getProductFromResponse = (response) => {
 };
 
 const SellerProductsPage = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -690,13 +692,22 @@ const SellerProductsPage = () => {
                     </strong>
 
                     <span>Stock: {product.stock}</span>
+                    
+                    {/* Add rating info here if desired */}
+                    <span style={{ marginLeft: '10px', color: '#f39c12', fontWeight: 'bold' }}>
+                        ★ {product.averageRating ?? product.rating ?? '0.0'} ({product.reviewCount || 0})
+                    </span>
                   </div>
 
                   <p className="seller-product-slug">{product.slug}</p>
 
                   <div className="seller-product-actions">
+                    <button type="button" onClick={() => navigate(`/product/${product.id}`)} style={{ backgroundColor: '#f39c12', color: 'white', border: 'none' }}>
+                      View & Reply Reviews
+                    </button>
+
                     <button type="button" onClick={() => loadProductImages(product)}>
-                      Details
+                      Images
                     </button>
 
                     <button type="button" onClick={() => handleUpdateStock(product.id)}>

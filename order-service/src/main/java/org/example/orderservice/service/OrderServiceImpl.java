@@ -72,11 +72,9 @@ public class OrderServiceImpl implements OrderService {
         order.setStatusHistory(List.of(initialStatus));
 
         Order savedOrder = orderRepository.save(order);
-        
-        // 1. Publish generic event for notification service
+
         publishOrderPlacedEvent(savedOrder);
-        
-        // 2. Publish specific commands to product service to reserve stock
+
         for (OrderLine line : orderLines) {
             orderEventPublisher.sendStockReserveCommand(
                 new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), savedOrder.getId())
@@ -165,11 +163,9 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
 
         Order updatedOrder = orderRepository.save(order);
-        
-        // 1. Publish generic event for notification service
+
         publishOrderStatusChangedEvent(updatedOrder, oldStatus);
-        
-        // 2. If cancelled, release stock in product service
+
         if ("CANCELLED".equals(newStatus)) {
             for (OrderLine line : order.getOrderLines()) {
                 orderEventPublisher.sendStockReleaseCommand(

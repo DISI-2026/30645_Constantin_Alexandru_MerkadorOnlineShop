@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers(HttpMethod.GET, "/reviews/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/reviews").hasRole("BUYER")
-                        .requestMatchers(HttpMethod.POST, "/reviews/**/reply").hasRole("SELLER")
+                        .requestMatchers(HttpMethod.POST, "/reviews/*/reply").hasRole("SELLER")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

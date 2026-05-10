@@ -354,7 +354,7 @@ const BrowsePage = () => {
                     <span>Stock: {product.stock}</span>
                     <span>
                       Rating:{' '}
-                      {product.averageRating ?? product.rating ?? 'N/A'}
+                      {product.avgRating ?? product.rating ?? 'N/A'}
                     </span>
                   </div>
 
