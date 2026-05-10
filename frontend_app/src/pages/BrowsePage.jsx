@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import BrowseNavbar from '../components/BrowseNavbar.jsx';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import '../styles/BrowsePage.css';
 
 const extractList = (response) => {
@@ -23,6 +25,8 @@ const extractPageInfo = (response) => {
 };
 
 const BrowsePage = () => {
+  const { activeRole } = useAuth();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -179,6 +183,10 @@ const BrowsePage = () => {
       ...prev,
       page: Math.min(prev.page + 1, Math.max(prev.totalPages - 1, 0)),
     }));
+  };
+
+  const handleViewDetails = (productId) => {
+      navigate(`/product/${productId}`);
   };
 
   return (
@@ -346,12 +354,12 @@ const BrowsePage = () => {
                     <span>Stock: {product.stock}</span>
                     <span>
                       Rating:{' '}
-                      {product.averageRating ?? product.rating ?? 'N/A'}
+                      {product.avgRating ?? product.rating ?? 'N/A'}
                     </span>
                   </div>
 
-                  <button type="button" className="browse-details-btn">
-                    Order now
+                  <button type="button" className="browse-details-btn" onClick={() => handleViewDetails(product.id)}>
+                      View Details
                   </button>
                 </div>
               </article>

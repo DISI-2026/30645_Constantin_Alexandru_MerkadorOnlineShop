@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @RequiredArgsConstructor
 @EnableMethodSecurity 
-public class  SecurityConfig {
+public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -25,8 +25,8 @@ public class  SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/cart/**").authenticated()
-                        .requestMatchers("/orders/**").authenticated()
+                        .requestMatchers("/cart/**").hasRole("BUYER")
+                        .requestMatchers("/orders/**").hasAnyRole("BUYER", "ADMIN")
                         .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.orderservice.dto.*;
 import org.example.orderservice.dto.event.OrderPlacedEvent;
 import org.example.orderservice.dto.event.OrderStatusChangedEvent;
+import org.example.orderservice.dto.event.OrderStockReserveMessage;
 import org.example.orderservice.infrastructure.entity.Order;
 import org.example.orderservice.infrastructure.entity.OrderLine;
 import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
@@ -56,6 +57,7 @@ public class OrderServiceImpl implements OrderService {
                     line.setProductTitle(itemDto.getProductTitle());
                     line.setUnitPrice(itemDto.getUnitPrice());
                     line.setQuantity(itemDto.getQuantity());
+                    line.setSellerId(itemDto.getSellerId());
                     line.setSubtotal(itemDto.getUnitPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())));
                     return line;
                 })
@@ -71,12 +73,21 @@ public class OrderServiceImpl implements OrderService {
         order.setStatusHistory(List.of(initialStatus));
 
         Order savedOrder = orderRepository.save(order);
+
         publishOrderPlacedEvent(savedOrder);
+
+        for (OrderLine line : orderLines) {
+            orderEventPublisher.sendStockReserveCommand(
+                new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), savedOrder.getId())
+            );
+        }
+
         return OrderMapper.toDto(savedOrder);
     }
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('BUYER')")
     public OrderResponseDto checkout(CheckoutRequestDto checkoutRequest) {
         CartDto cart = cartService.getCart();
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
@@ -89,6 +100,7 @@ public class OrderServiceImpl implements OrderService {
                         .productTitle(cartItem.getProductTitle())
                         .unitPrice(cartItem.getUnitPrice())
                         .quantity(cartItem.getQuantity())
+                        .sellerId(cartItem.getSellerId())
                         .build())
                 .collect(Collectors.toList());
 
@@ -105,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN') or @orderServiceImpl.isOrderOwner(authentication, #orderId)")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId))")
     public OrderResponseDto getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
                 .map(OrderMapper::toDto)
@@ -114,6 +126,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('BUYER')")
     public List<OrderResponseDto> getAllOrders() {
         UUID userId = getCurrentUserId();
         return orderRepository.findByCustomerId(userId).stream()
@@ -122,8 +135,32 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     @PreAuthorize("hasRole('ADMIN')")
+    public List<OrderResponseDto> getAllOrdersForAdmin() {
+        return orderRepository.findAll().stream()
+                .map(OrderMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('SELLER')")
+    public List<OrderResponseDto> getOrdersForSeller() {
+        UUID sellerId = getCurrentUserId();
+        return orderRepository.findOrdersBySellerId(sellerId).stream()
+                .map(OrderMapper::toDto)
+               .peek(dto -> dto.setItems(
+                        dto.getItems().stream()
+                                .filter(item -> sellerId.equals(item.getSellerId()))
+                                .collect(Collectors.toList())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
     public OrderResponseDto updateOrderStatus(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
@@ -143,13 +180,23 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
 
         Order updatedOrder = orderRepository.save(order);
+
         publishOrderStatusChangedEvent(updatedOrder, oldStatus);
+
+        if ("CANCELLED".equals(newStatus)) {
+            for (OrderLine line : order.getOrderLines()) {
+                orderEventPublisher.sendStockReleaseCommand(
+                    new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), order.getId())
+                );
+            }
+        }
+
         return OrderMapper.toDto(updatedOrder);
     }
 
     @Override
     @Transactional
-    @PreAuthorize("@orderServiceImpl.isOrderOwner(authentication, #orderId)")
+    @PreAuthorize("hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId)")
     public OrderResponseDto cancelOrder(UUID orderId) {
         return updateOrderStatusForOwner(orderId, "CANCELLED");
     }
