@@ -48,6 +48,16 @@ const CartPage = () => {
         }
     };
 
+    const handleClearCart = async () => {
+        if (!window.confirm("Are you sure you want to empty your cart?")) return;
+        try {
+            await cartService.clearCart();
+            setCart({ items: [], total: 0 });
+        } catch (err) {
+            setError('Failed to clear cart.');
+        }
+    };
+
     const handleCheckout = async () => {
         if (!deliveryAddress.trim()) {
             setError('Please enter a delivery address.');
@@ -74,6 +84,14 @@ const CartPage = () => {
                 {error && <p className="cart-error">{error}</p>}
                 {cart && cart.items && cart.items.length > 0 ? (
                     <div className="cart-details">
+                        <div className="cart-header-actions" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '15px' }}>
+                            <button 
+                                onClick={handleClearCart} 
+                                style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                                Empty Cart
+                            </button>
+                        </div>
                         <ul className="cart-items-list">
                             {cart.items.map((item) => (
                                 <li key={item.productId} className="cart-item">
@@ -109,7 +127,7 @@ const CartPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <p>Your cart is empty.</p>
+                    <p style={{ textAlign: 'center', fontSize: '1.2rem', marginTop: '2rem' }}>Your cart is empty.</p>
                 )}
             </div>
         </div>

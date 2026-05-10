@@ -62,6 +62,9 @@ const BuyerPage = () => {
     // --- State for Orders ---
     const [orders, setOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    
+    // --- State for Order Details Modal ---
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -272,6 +275,20 @@ const BuyerPage = () => {
         } catch (error) {
             alert("Failed to cancel order: " + error.message);
         }
+    };
+
+    const handleViewOrderDetails = async (orderId) => {
+        try {
+            const response = await orderService.getOrderById(orderId);
+            setSelectedOrder(response.data || response);
+        } catch (error) {
+            alert("Failed to load order details.");
+            console.error(error);
+        }
+    };
+
+    const closeOrderModal = () => {
+        setSelectedOrder(null);
     };
 
     return (
@@ -551,14 +568,22 @@ const BuyerPage = () => {
                                                     </td>
                                                     <td>{order.deliveryAddress}</td>
                                                     <td>
-                                                        {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                                                        <div className="d-flex gap-2">
                                                             <button 
-                                                                className="btn btn-sm btn-outline-danger"
-                                                                onClick={() => handleCancelOrder(order.id)}
+                                                                className="btn btn-sm btn-outline-primary"
+                                                                onClick={() => handleViewOrderDetails(order.id)}
                                                             >
-                                                                Cancel
+                                                                View
                                                             </button>
-                                                        )}
+                                                            {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                                                                <button 
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => handleCancelOrder(order.id)}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -568,7 +593,7 @@ const BuyerPage = () => {
                             )}
                         </div>
                     )}
-
+                    
                     {tab === 'wishlist' && (
                         <div>
                             <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Saved Items</h2>
@@ -577,6 +602,68 @@ const BuyerPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* ORDER DETAILS MODAL */}
+            {selectedOrder && (
+                <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Order Details</h5>
+                                <button type="button" className="btn-close" onClick={closeOrderModal}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <strong>Order ID:</strong> {selectedOrder.id} <br/>
+                                    <strong>Status:</strong> <span className={`badge bg-${selectedOrder.status === 'PENDING' ? 'warning' : selectedOrder.status === 'CANCELLED' ? 'danger' : 'success'}`}>{selectedOrder.status}</span> <br/>
+                                    <strong>Date:</strong> {new Date(selectedOrder.placedAt).toLocaleString()} <br/>
+                                    <strong>Delivery Address:</strong> {selectedOrder.deliveryAddress}
+                                </div>
+                                
+                                <h6>Items:</h6>
+                                <table className="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Qty</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedOrder.items?.map(item => (
+                                            <tr key={item.productId}>
+                                                <td>{item.productTitle} <br/><small className="text-muted">{item.productId}</small></td>
+                                                <td>${item.unitPrice.toFixed(2)}</td>
+                                                <td>{item.quantity}</td>
+                                                <td>${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                <h5 className="text-end mt-3">Total: ${selectedOrder.totalAmount?.toFixed(2)}</h5>
+                                
+                                {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 && (
+                                    <div className="mt-4">
+                                        <h6>Status History:</h6>
+                                        <ul className="list-group list-group-flush">
+                                            {selectedOrder.statusHistory.map((history, idx) => (
+                                                <li key={idx} className="list-group-item py-1 px-2" style={{ fontSize: '0.9rem' }}>
+                                                    {new Date(history.changedAt).toLocaleString()} - <strong>{history.fromStatus || 'NEW'} &rarr; {history.toStatus}</strong>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={closeOrderModal}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

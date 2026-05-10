@@ -26,7 +26,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(req -> req
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/cart/**").hasRole("BUYER")
-                        .requestMatchers("/orders/**").hasRole("BUYER")
+                        .requestMatchers("/orders/**").hasAnyRole("BUYER", "ADMIN")
                         .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
