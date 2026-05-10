@@ -6,6 +6,7 @@ const TYPE_ICON = {
     ORDER_PLACED: '🛍️',
     ORDER_STATUS_CHANGED: '📦',
     REVIEW_POSTED: '⭐',
+    VERIFICATION_REQUEST: '🛡️',
 };
 
 const timeAgo = (dateString) => {
@@ -26,16 +27,27 @@ const BellIcon = () => (
 
 const NotificationBell = () => {
     const {
-        notifications, unreadCount, isConnected,
-        isLoading, hasMore,
-        markAsRead, markAllAsRead, deleteNotification, loadMore,
+        userNotifications,
+        adminNotifications,
+        totalUnreadCount,
+        userUnreadCount,
+        adminUnreadCount,
+        isAdmin,
+        isLoading,
+        userHasMore,
+        adminHasMore,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        loadMoreUser,
+        loadMoreAdmin,
     } = useNotifications();
 
     const [open, setOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('PERSONAL');
     const panelRef = useRef(null);
     const buttonRef = useRef(null);
 
-    // Close panel when clicking outside
     useEffect(() => {
         if (!open) return;
         const handleClick = (e) => {
@@ -50,59 +62,84 @@ const NotificationBell = () => {
         return () => document.removeEventListener('mousedown', handleClick);
     }, [open]);
 
-    const handleItemClick = (notification) => {
-        if (!notification.read) {
-            markAsRead(notification.id);
+    const handleItemClick = (n) => {
+        if (!n.read) {
+            markAsRead(n.id, activeTab === 'ADMIN');
         }
     };
 
     const handleDelete = (e, id) => {
         e.stopPropagation();
-        deleteNotification(id);
+        deleteNotification(id, activeTab === 'ADMIN');
     };
+
+    const currentNotifications = activeTab === 'PERSONAL' ? userNotifications : adminNotifications;
+    const currentHasMore      = activeTab === 'PERSONAL' ? userHasMore : adminHasMore;
+    const currentLoadMore     = activeTab === 'PERSONAL' ? loadMoreUser : loadMoreAdmin;
 
     return (
         <div className="notif-bell">
             <button
                 ref={buttonRef}
-                className={`notif-bell-btn${unreadCount > 0 ? ' has-unread' : ''}`}
+                className={`notif-bell-btn${totalUnreadCount > 0 ? ' has-unread' : ''}`}
                 onClick={() => setOpen(o => !o)}
-                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+                aria-label={`Notifications${totalUnreadCount > 0 ? ` (${totalUnreadCount} unread)` : ''}`}
                 title="Notifications"
             >
                 <BellIcon />
-                {unreadCount > 0 && (
+                {totalUnreadCount > 0 && (
                     <span className="notif-badge">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                     </span>
                 )}
             </button>
 
             {open && (
                 <div ref={panelRef} className="notif-panel">
+
                     <div className="notif-panel-header">
                         <span className="notif-panel-title">Notifications</span>
                         <div className="notif-panel-header-actions">
-                            {unreadCount > 0 && (
+                            {/* Only show mark-all on personal tab */}
+                            {activeTab === 'PERSONAL' && userUnreadCount > 0 && (
                                 <button className="notif-mark-all-btn" onClick={markAllAsRead}>
                                     Mark all read
                                 </button>
                             )}
-                            <span
-                                className={`notif-connected-dot${isConnected ? '' : ' disconnected'}`}
-                                title={isConnected ? 'Live' : 'Reconnecting…'}
-                            />
                         </div>
                     </div>
 
+                    {isAdmin && (
+                        <div className="notif-tabs">
+                            <button
+                                className={`notif-tab${activeTab === 'PERSONAL' ? ' active' : ''}`}
+                                onClick={() => setActiveTab('PERSONAL')}
+                            >
+                                Personal
+                                {userUnreadCount > 0 && (
+                                    <span className="notif-tab-badge">{userUnreadCount}</span>
+                                )}
+                            </button>
+                            <button
+                                className={`notif-tab${activeTab === 'ADMIN' ? ' active admin' : ''}`}
+                                onClick={() => setActiveTab('ADMIN')}
+                            >
+                                Admin inbox
+                                {adminUnreadCount > 0 && (
+                                    <span className="notif-tab-badge">{adminUnreadCount}</span>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     <div className="notif-list">
-                        {notifications.length === 0 && !isLoading ? (
+                        {currentNotifications.length === 0 && !isLoading ? (
                             <div className="notif-empty">
                                 <span className="notif-empty-icon">🔔</span>
                                 <span className="notif-empty-text">You're all caught up!</span>
                             </div>
                         ) : (
-                            notifications.map(n => (
+                            currentNotifications.map(n => (
                                 <div
                                     key={n.id}
                                     className={`notif-item${n.read ? '' : ' unread'}`}
@@ -113,7 +150,9 @@ const NotificationBell = () => {
                                     </div>
                                     <div className="notif-content">
                                         <div className="notif-title-row">
-                                            <span className="notif-title">{n.title}</span>
+                                            <span className="notif-title">
+                                                {n.title || n.type.replace(/_/g, ' ')}
+                                            </span>
                                             <span className="notif-time">{timeAgo(n.createdAt)}</span>
                                         </div>
                                         <p className="notif-message">{n.message}</p>
@@ -131,11 +170,11 @@ const NotificationBell = () => {
                         )}
                     </div>
 
-                    {(hasMore || isLoading) && (
+                    {(currentHasMore || isLoading) && (
                         <div className="notif-panel-footer">
                             <button
                                 className="notif-load-more-btn"
-                                onClick={loadMore}
+                                onClick={currentLoadMore}
                                 disabled={isLoading}
                             >
                                 {isLoading ? 'Loading…' : 'Load more'}

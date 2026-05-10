@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
+import { Link } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
+import { useAuth } from '../context/AuthContext';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
+import { getSellerProfile } from '../api/userService';
 import '../styles/SellerProductsPage.css';
 
 const extractList = (response) => {
@@ -27,8 +30,12 @@ const getProductFromResponse = (response) => {
 };
 
 const SellerProductsPage = () => {
+  const { userId } = useAuth();
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  const [isProfileMissing, setIsProfileMissing] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedProductImages, setSelectedProductImages] = useState([]);
@@ -61,71 +68,74 @@ const SellerProductsPage = () => {
       fallback
     );
   };
-
-  const loadCategories = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const response = await categoryService.getCategories();
-      const list = extractList(response);
+        setLoading(true);
 
-      setCategories(list);
+        // Load the seller profile if it exists
+        let profileData = null;
+        try {
+            const profileRes = await getSellerProfile(userId);
+            profileData = profileRes.data || profileRes;
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                setIsProfileMissing(true);
+                setLoading(false);
+                return;
+            }
+        }
 
-      if (list.length > 0) {
-        setProductForm((prev) => ({
-          ...prev,
-          categoryId: prev.categoryId || list[0].id,
-        }));
-      }
+        // Load categories
+        const catRes = await categoryService.getCategories();
+        const allCategories = extractList(catRes);
+
+        // If verified, we only show categories that the user is authorized to sell in
+        if (profileData?.verified && profileData?.authorizedCategories?.length > 0) {
+            const authorizedSet = new Set(profileData.authorizedCategories);
+            // We check for the presence of the category name, slug, and title in the authorized set
+            const filteredCats = allCategories.filter(c =>
+                authorizedSet.has(c.name) || authorizedSet.has(c.slug) || authorizedSet.has(c.title)
+            );
+            setCategories(filteredCats);
+
+            if (filteredCats.length > 0) {
+                setProductForm(prev => ({ ...prev, categoryId: prev.categoryId || filteredCats[0].id }));
+            }
+        } else {
+            // If not verified, we show all categories
+            setCategories(allCategories);
+            if (allCategories.length > 0) {
+                setProductForm(prev => ({ ...prev, categoryId: prev.categoryId || allCategories[0].id }));
+            }
+        }
+
+        // Load products
+        const response = await productService.getMyProducts({ page: 0, size: 50 });
+        const productList = extractList(response);
+        const productsWithImages = await Promise.all(
+            productList.map(async (product) => {
+                try {
+                    const imagesResponse = await productService.getProductImages(product.id);
+                    return { ...product, images: extractList(imagesResponse) };
+                } catch (error) {
+                    console.error(`Images error for product ${product.id}:`, error);
+
+                    return {
+                        ...product,
+                        images: product.images || [],
+                    };
+                }
+            })
+        );
+        setProducts(productsWithImages);
+
     } catch (error) {
-      console.error('Categories error:', error);
-      alert('Could not load categories.');
-    }
-  };
-
-  const loadMyProducts = async () => {
-    try {
-      setLoading(true);
-
-      const response = await productService.getMyProducts({
-        page: 0,
-        size: 50,
-      });
-
-      const productList = extractList(response);
-
-      const productsWithImages = await Promise.all(
-        productList.map(async (product) => {
-          try {
-            const imagesResponse = await productService.getProductImages(product.id);
-            const images = extractList(imagesResponse);
-
-            return {
-              ...product,
-              images,
-            };
-          } catch (error) {
-            console.error(`Images error for product ${product.id}:`, error);
-
-            return {
-              ...product,
-              images: product.images || [],
-            };
-          }
-        })
-      );
-
-      setProducts(productsWithImages);
-    } catch (error) {
-      console.error('My products error:', error);
-      alert(
-        getErrorMessage(
-          error,
-          'Could not load your products. Please check that you are logged in as a seller.'
-        )
-      );
+        console.error('Initialization error:', error);
+        alert('Could not initialize the page correctly.');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+  }, [userId]);
 
   const loadProductImages = async (product) => {
     try {
@@ -153,9 +163,10 @@ const SellerProductsPage = () => {
   };
 
   useEffect(() => {
-    loadCategories();
-    loadMyProducts();
-  }, []);
+      if (userId) {
+          loadData().catch(console.error);
+      }
+  }, [loadData, userId]);
 
   const handleProductChange = (e) => {
     const { name, value, files } = e.target;
@@ -253,7 +264,7 @@ const SellerProductsPage = () => {
 
       e.target.reset();
 
-      await loadMyProducts();
+      await loadData();
       alert('Product added successfully.');
     } catch (error) {
       console.error('Create product error:', error);
@@ -493,6 +504,26 @@ const SellerProductsPage = () => {
     }
   };
 
+    // --- If profile is missing, show a message ---
+  if (isProfileMissing) {
+    return (
+        <div className="seller-products-page">
+            <div className="seller-products-container">
+                <MainNavbar />
+                <div style={{ textAlign: 'center', marginTop: '100px', background: '#fff', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                    <h2 style={{ color: '#e74c3c' }}>Profile Setup Required</h2>
+                    <p style={{ fontSize: '1.1rem', color: '#555', margin: '20px 0' }}>
+                        You must set up your Shop Profile (Name, Description, Logo) before you can add or manage products.
+                    </p>
+                    <Link to="/seller" style={{ padding: '10px 20px', background: '#3498db', color: '#fff', textDecoration: 'none', borderRadius: '5px', fontWeight: 'bold' }}>
+                        Go to Shop Settings
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="seller-products-page">
       <div className="seller-products-container">
@@ -507,7 +538,7 @@ const SellerProductsPage = () => {
             </p>
           </div>
 
-          <button type="button" className="seller-products-refresh" onClick={loadMyProducts}>
+          <button type="button" className="seller-products-refresh" onClick={loadData}>
             Refresh
           </button>
         </section>
