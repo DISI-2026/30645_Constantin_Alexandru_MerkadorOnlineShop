@@ -10,7 +10,6 @@ import org.example.notificationservice.dto.event.OrderPlacedEvent;
 import org.example.notificationservice.dto.event.OrderStatusChangedEvent;
 import org.example.notificationservice.dto.event.ReviewNotificationEvent;
 import org.example.notificationservice.service.NotificationService;
-import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
@@ -29,35 +28,37 @@ public class NotificationEventConsumer {
 
     /**
      * Handles both OrderPlacedEvent and OrderStatusChangedEvent from the fanout exchange.
-     * The __TypeId__ header from order-service identifies the concrete type.
+     * Receives raw message bytes to avoid Spring's Jackson2MessageConverter type mapping.
+     * Detects event type based on JSON content.
      */
     @RabbitListener(queues = RabbitMQConfig.ORDER_QUEUE_FOR_NOTIFICATION)
-    public void handleOrderEvent(Message message) {
-        String typeId = message.getMessageProperties().getHeader("__TypeId__");
-        String body = new String(message.getBody(), StandardCharsets.UTF_8);
+    public void handleOrderEvent(byte[] messageBody) {
+        String body = new String(messageBody, StandardCharsets.UTF_8);
+
+        log.info("Received order event. Body: {}", body);
 
         try {
-            if (typeId != null && typeId.contains("OrderPlacedEvent")) {
-                OrderPlacedEvent event = objectMapper.readValue(body, OrderPlacedEvent.class);
-                notificationService.processOrderPlaced(event);
-            } else if (typeId != null && typeId.contains("OrderStatusChangedEvent")) {
+            // Try to determine type: OrderStatusChangedEvent has oldStatus, OrderPlacedEvent has items array
+            if (body.contains("\"oldStatus\"") || body.contains("oldStatus")) {
                 OrderStatusChangedEvent event = objectMapper.readValue(body, OrderStatusChangedEvent.class);
                 notificationService.processOrderStatusChanged(event);
+                log.info("Processed OrderStatusChangedEvent for orderId: {}", event.getOrderId());
             } else {
-                log.warn("Received unknown order event type: {}", typeId);
+                OrderPlacedEvent event = objectMapper.readValue(body, OrderPlacedEvent.class);
+                notificationService.processOrderPlaced(event);
+                log.info("Processed OrderPlacedEvent for orderId: {}", event.getOrderId());
             }
         } catch (Exception e) {
-            log.error("Failed to process order event (type={}): {}", typeId, e.getMessage(), e);
+            log.error("Failed to process order event: {}", e.getMessage(), e);
         }
     }
 
     /**
      * Handles review notification events from the post-service.
-     * TypePrecedence.INFERRED in the converter lets Spring deserialize to ReviewNotificationEvent
-     * based on the method signature, ignoring the producer's __TypeId__ header.
      */
     @RabbitListener(queues = RabbitMQConfig.REVIEW_QUEUE_FOR_NOTIFICATION)
     public void handleReviewEvent(ReviewNotificationEvent event) {
+        log.info("Received review event for productId: {}", event.getProductId());
         try {
             notificationService.processReviewPosted(event);
         } catch (Exception e) {

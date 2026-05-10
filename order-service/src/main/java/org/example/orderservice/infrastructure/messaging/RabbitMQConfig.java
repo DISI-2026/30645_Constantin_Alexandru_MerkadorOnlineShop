@@ -1,5 +1,8 @@
 package org.example.orderservice.infrastructure.messaging;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -25,7 +28,10 @@ public class RabbitMQConfig {
 
     @Bean
     public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return new Jackson2JsonMessageConverter(objectMapper);
     }
 
     @Bean
@@ -37,13 +43,11 @@ public class RabbitMQConfig {
 
     // --- PRODUCER CONFIGURATIONS ---
 
-    // 1. Fanout exchange for broadcasting general order events
     @Bean
     public FanoutExchange orderEventsExchange() {
         return new FanoutExchange(ORDER_EVENTS_EXCHANGE);
     }
 
-    // 2. Topic exchange for specific commands to product-service
     @Bean
     public TopicExchange productServiceExchange() {
         return new TopicExchange(PRODUCT_SERVICE_EXCHANGE);
