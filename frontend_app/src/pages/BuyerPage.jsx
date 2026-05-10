@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { deactivate, changePassword, requestEmailUpdate } from '../api/credentialsService';
 import { categoryService } from '../api/categoryService';
+import { orderService } from '../api/orderService';
 import {
     getUserById,
     updateUser,
@@ -35,14 +36,11 @@ const BuyerPage = () => {
         preferredCategories: []
     });
 
-    // Reference to the hidden file input
     const fileInputRef = useRef(null);
 
-    // --- State for Email Update ---
     const [isChangingEmail, setIsChangingEmail] = useState(false);
     const [newEmail, setNewEmail] = useState('');
 
-    // --- State for Password Update ---
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [passwordForm, setPasswordForm] = useState({
         oldPassword: '',
@@ -50,7 +48,6 @@ const BuyerPage = () => {
         confirmPassword: ''
     });
 
-    // --- State for Address Book ---
     const [addresses, setAddresses] = useState([]);
     const [showAddAddress, setShowAddAddress] = useState(false);
     const [addressForm, setAddressForm] = useState({
@@ -62,7 +59,13 @@ const BuyerPage = () => {
         isDefault: false
     });
 
-    // --- Loads all categories ---
+    // --- State for Orders ---
+    const [orders, setOrders] = useState([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    
+    // --- State for Order Details Modal ---
+    const [selectedOrder, setSelectedOrder] = useState(null);
+
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -76,7 +79,6 @@ const BuyerPage = () => {
         fetchCategories();
     }, []);
 
-    // Fetch user data
     const fetchUserData = useCallback(async () => {
         if (!userId) return;
         try {
@@ -96,9 +98,27 @@ const BuyerPage = () => {
         }
     }, [userId]);
 
+    const fetchOrders = useCallback(async () => {
+        try {
+            setLoadingOrders(true);
+            const response = await orderService.getOrderHistory();
+            setOrders(response.data || response || []);
+        } catch (error) {
+            console.error("Error fetching orders:", error);
+        } finally {
+            setLoadingOrders(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchUserData();
     }, [fetchUserData]);
+
+    useEffect(() => {
+        if (tab === 'orders') {
+            fetchOrders();
+        }
+    }, [tab, fetchOrders]);
 
     // ==========================================
     // PROFILE HANDLERS
@@ -108,19 +128,17 @@ const BuyerPage = () => {
         setProfileForm(prev => ({ ...prev, [name]: value }));
     };
 
-    // Toggles the selected state of a category, if selected, then its preffered by the user
     const handleCategoryToggle = (slug) => {
         setProfileForm(prev => {
             const isAlreadySelected = prev.preferredCategories.includes(slug);
             const updatedCategories = isAlreadySelected
-                ? prev.preferredCategories.filter(catSlug => catSlug !== slug) // Remove
-                : [...prev.preferredCategories, slug]; // Add
+                ? prev.preferredCategories.filter(catSlug => catSlug !== slug)
+                : [...prev.preferredCategories, slug];
 
             return { ...prev, preferredCategories: updatedCategories };
         });
     };
 
-    // Updates the user's data (including preferred categories) in the backend
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -141,7 +159,6 @@ const BuyerPage = () => {
         }
         try {
             await requestEmailUpdate(userId, newEmail);
-            // Navigate to VerificationPage and pass the context via searchParams, to be persistent when refreshing the page
             navigate(`/verify?email=${encodeURIComponent(newEmail)}&type=emailUpdate&userId=${userId}`);
         } catch (error) {
             alert("Failed to request email update: " + error.message);
@@ -174,23 +191,16 @@ const BuyerPage = () => {
         }
     };
 
-    // ==========================================
-    // AVATAR UPLOAD HANDLERS
-    // ==========================================
-
-    // Trigger the hidden file input click
     const handleAvatarClick = () => {
         if (!isUploadingAvatar && fileInputRef.current) {
             fileInputRef.current.click();
         }
     };
 
-    // Handle the file selection and upload
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Basic validation to ensure it's an image
         if (!file.type.startsWith('image/')) {
             alert("Please select a valid image file.");
             return;
@@ -198,17 +208,13 @@ const BuyerPage = () => {
 
         setIsUploadingAvatar(true);
         try {
-            // This calls our backend using FormData automatically
             await uploadAvatar(userId, file);
-
-            // Refresh the profile to get the new avatar URL
             await fetchUserData();
         } catch (error) {
             console.error("Avatar upload failed:", error);
             alert("Failed to upload avatar: " + error.message);
         } finally {
             setIsUploadingAvatar(false);
-            // Reset the input value so the user can select the same file again if needed
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -257,6 +263,34 @@ const BuyerPage = () => {
         }
     };
 
+    // ==========================================
+    // ORDER HANDLERS
+    // ==========================================
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm("Are you sure you want to cancel this order?")) return;
+        try {
+            await orderService.cancelOrder(orderId);
+            alert("Order cancelled successfully.");
+            fetchOrders();
+        } catch (error) {
+            alert("Failed to cancel order: " + error.message);
+        }
+    };
+
+    const handleViewOrderDetails = async (orderId) => {
+        try {
+            const response = await orderService.getOrderById(orderId);
+            setSelectedOrder(response.data || response);
+        } catch (error) {
+            alert("Failed to load order details.");
+            console.error(error);
+        }
+    };
+
+    const closeOrderModal = () => {
+        setSelectedOrder(null);
+    };
+
     return (
         <div className="buyer-page-wrapper">
             <div className="buyer-page-container">
@@ -279,7 +313,6 @@ const BuyerPage = () => {
                                     <div className="card-body">
                                         <h4 className="card-title mb-4">Personal Information</h4>
 
-                                        {/* Avatar UI */}
                                         <div className="avatar-container" onClick={handleAvatarClick} title="Click to change avatar">
                                             {isUploadingAvatar ? (
                                                 <div className="spinner-border text-success" role="status"><span className="visually-hidden">Loading...</span></div>
@@ -297,13 +330,11 @@ const BuyerPage = () => {
                                                 <p><strong>Last Name:</strong> {profile.lastName}</p>
                                                 <p><strong>Phone:</strong> {profile.phone || 'Not set'}</p>
 
-                                                {/* Category div */}
                                                 <div className="mt-3 text-start">
                                                     <p className="mb-1"><strong>Preferred Categories:</strong></p>
                                                     <div className="category-tags-container">
                                                         {profile.preferredCategories && profile.preferredCategories.length > 0 ? (
                                                             profile.preferredCategories.map(slug => {
-                                                                // Find and show the name of the category based on the slug, fallback to slug if not found
                                                                 const catName = availableCategories.find(c => c.slug === slug)?.name || slug;
                                                                 return <span key={slug} className="category-tag read-only">{catName}</span>;
                                                             })
@@ -319,7 +350,6 @@ const BuyerPage = () => {
                                             </div>
                                         ) : (
                                             <div className="mt-4 text-start">
-                                                {/* 1. Basic Info Form */}
                                                 <form onSubmit={handleProfileSubmit} className="mb-4 pb-4 border-bottom">
                                                     <h6 className="text-muted mb-3">Basic Info</h6>
                                                     <div className="mb-2">
@@ -335,7 +365,6 @@ const BuyerPage = () => {
                                                         <input type="text" className="form-control form-control-sm" name="phone" value={profileForm.phone} onChange={handleProfileChange} />
                                                     </div>
 
-                                                    {/* Category selection during Edit */}
                                                     <div className="mb-4">
                                                         <label className="form-label small">Preferred Categories</label>
                                                         <div className="category-tags-container">
@@ -363,7 +392,6 @@ const BuyerPage = () => {
                                                         <button type="submit" className="btn btn-success btn-sm flex-grow-1">Save Profile</button>
                                                         <button type="button" className="btn btn-secondary btn-sm flex-grow-1" onClick={() => {
                                                             setIsEditingProfile(false);
-                                                            // Reset to original values id user cancels the edit
                                                             setProfileForm({
                                                                 firstName: profile.firstName || '',
                                                                 lastName: profile.lastName || '',
@@ -374,10 +402,8 @@ const BuyerPage = () => {
                                                     </div>
                                                 </form>
 
-                                                {/* 2. Security Settings */}
                                                 <h6 className="text-muted mb-3">Security & Account</h6>
 
-                                                {/* Email Update Area */}
                                                 <div className="mb-3 p-3 bg-light border rounded">
                                                     <label className="form-label small fw-bold">Email Address</label>
                                                     {!isChangingEmail ? (
@@ -396,7 +422,6 @@ const BuyerPage = () => {
                                                     )}
                                                 </div>
 
-                                                {/* Password Update Area */}
                                                 <div className="mb-3 p-3 bg-light border rounded">
                                                     {!isChangingPassword ? (
                                                         <button type="button" className="btn btn-outline-warning btn-sm w-100" onClick={() => setIsChangingPassword(true)}>
@@ -416,7 +441,6 @@ const BuyerPage = () => {
                                                     )}
                                                 </div>
 
-                                                {/* Deactivate Account Area */}
                                                 <div className="mt-4 pt-3 border-top">
                                                     <button type="button" className="btn btn-danger btn-sm w-100 fw-bold" onClick={handleDeactivateAccount}>
                                                         Deactivate Account
@@ -431,7 +455,6 @@ const BuyerPage = () => {
 
                             {/* Right Column: Address Book */}
                             <div className="col-md-7 mb-4">
-                                {/* ... Address Book code remains completely unchanged ... */}
                                 <div className="card shadow-sm border-0 h-100">
                                     <div className="card-body">
                                         <div className="d-flex justify-content-between align-items-center mb-4">
@@ -444,7 +467,6 @@ const BuyerPage = () => {
                                             </button>
                                         </div>
 
-                                        {/* Add Address Form */}
                                         {showAddAddress && (
                                             <form onSubmit={handleAddressSubmit} className="bg-light p-3 rounded mb-4 border">
                                                 <div className="row">
@@ -479,7 +501,6 @@ const BuyerPage = () => {
                                             </form>
                                         )}
 
-                                        {/* Addresses List */}
                                         {addresses.length === 0 && !showAddAddress ? (
                                             <p className="text-muted">You have no saved addresses.</p>
                                         ) : (
@@ -519,9 +540,60 @@ const BuyerPage = () => {
                     {tab === 'orders' && (
                         <div>
                             <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Order History</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>List of past purchases will appear here.</p>
+                            {loadingOrders ? (
+                                <p>Loading orders...</p>
+                            ) : orders.length === 0 ? (
+                                <p style={{ color: '#555', fontSize: '1.05rem' }}>You haven't placed any orders yet.</p>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-bordered table-hover mt-3">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Total Amount</th>
+                                                <th>Status</th>
+                                                <th>Delivery Address</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {orders.map(order => (
+                                                <tr key={order.id}>
+                                                    <td>{new Date(order.placedAt).toLocaleString()}</td>
+                                                    <td>${order.totalAmount?.toFixed(2)}</td>
+                                                    <td>
+                                                        <span className={`badge bg-${order.status === 'PENDING' ? 'warning' : order.status === 'CANCELLED' ? 'danger' : 'success'}`}>
+                                                            {order.status}
+                                                        </span>
+                                                    </td>
+                                                    <td>{order.deliveryAddress}</td>
+                                                    <td>
+                                                        <div className="d-flex gap-2">
+                                                            <button 
+                                                                className="btn btn-sm btn-outline-primary"
+                                                                onClick={() => handleViewOrderDetails(order.id)}
+                                                            >
+                                                                View
+                                                            </button>
+                                                            {order.status !== 'CANCELLED' && order.status !== 'DELIVERED' && (
+                                                                <button 
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => handleCancelOrder(order.id)}
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     )}
+                    
                     {tab === 'wishlist' && (
                         <div>
                             <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Saved Items</h2>
@@ -530,6 +602,68 @@ const BuyerPage = () => {
                     )}
                 </div>
             </div>
+
+            {/* ORDER DETAILS MODAL */}
+            {selectedOrder && (
+                <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex="-1">
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Order Details</h5>
+                                <button type="button" className="btn-close" onClick={closeOrderModal}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <strong>Order ID:</strong> {selectedOrder.id} <br/>
+                                    <strong>Status:</strong> <span className={`badge bg-${selectedOrder.status === 'PENDING' ? 'warning' : selectedOrder.status === 'CANCELLED' ? 'danger' : 'success'}`}>{selectedOrder.status}</span> <br/>
+                                    <strong>Date:</strong> {new Date(selectedOrder.placedAt).toLocaleString()} <br/>
+                                    <strong>Delivery Address:</strong> {selectedOrder.deliveryAddress}
+                                </div>
+                                
+                                <h6>Items:</h6>
+                                <table className="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Qty</th>
+                                            <th>Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedOrder.items?.map(item => (
+                                            <tr key={item.productId}>
+                                                <td>{item.productTitle} <br/><small className="text-muted">{item.productId}</small></td>
+                                                <td>${item.unitPrice.toFixed(2)}</td>
+                                                <td>{item.quantity}</td>
+                                                <td>${(item.unitPrice * item.quantity).toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                
+                                <h5 className="text-end mt-3">Total: ${selectedOrder.totalAmount?.toFixed(2)}</h5>
+                                
+                                {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 && (
+                                    <div className="mt-4">
+                                        <h6>Status History:</h6>
+                                        <ul className="list-group list-group-flush">
+                                            {selectedOrder.statusHistory.map((history, idx) => (
+                                                <li key={idx} className="list-group-item py-1 px-2" style={{ fontSize: '0.9rem' }}>
+                                                    {new Date(history.changedAt).toLocaleString()} - <strong>{history.fromStatus || 'NEW'} &rarr; {history.toStatus}</strong>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={closeOrderModal}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

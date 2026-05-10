@@ -2,6 +2,8 @@ package org.example.postservice.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.postservice.dto.ReviewApprovedMessage;
 import org.example.postservice.dto.ReviewRequestDto;
 import org.example.postservice.dto.ReviewResponseDto;
 import org.example.postservice.dto.VendorReplyRequestDto;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -38,10 +41,17 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewEntity reviewEntity = ReviewMapper.toEntity(reviewRequestDto);
         ReviewEntity savedReview = reviewRepository.save(reviewEntity);
 
-        updateProductRatingAggregate(savedReview);
+        ProductRatingAggregateEntity updatedAggregate = updateProductRatingAggregate(savedReview);
 
         ReviewResponseDto responseDto = ReviewMapper.toDto(savedReview);
         notificationPublisher.publishReviewNotification(responseDto);
+
+        ReviewApprovedMessage syncMessage = new ReviewApprovedMessage(
+                UUID.fromString(savedReview.getProductId()), 
+                updatedAggregate.getAvgRating(), 
+                (int) updatedAggregate.getReviewCount()
+        );
+        notificationPublisher.publishRatingUpdateToProductService(syncMessage);
 
         return responseDto;
     }
@@ -49,25 +59,34 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewResponseDto addVendorReply(UUID reviewId, VendorReplyRequestDto vendorReplyRequestDto) {
-        String authenticatedVendorId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String authenticatedVendorId = principal != null ? principal.toString() : null;
+            
+            log.info("Attempting to add reply. Auth ID: {}, DTO Vendor ID: {}", authenticatedVendorId, vendorReplyRequestDto.getVendorId());
 
-        if (!authenticatedVendorId.equals(vendorReplyRequestDto.getVendorId().toString())) {
-            throw new SecurityException("Vendor can only reply with their own vendor ID");
+            if (authenticatedVendorId == null || vendorReplyRequestDto.getVendorId() == null || 
+                !authenticatedVendorId.equals(vendorReplyRequestDto.getVendorId().toString())) {
+                throw new SecurityException("Vendor can only reply with their own vendor ID");
+            }
+
+            ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
+                    .orElseThrow(() -> new EntityNotFoundException("Review not found with id: " + reviewId));
+
+            VendorReplyEntity replyEntity = ReviewMapper.toEntity(vendorReplyRequestDto, reviewEntity);
+            vendorReplyRepository.save(replyEntity);
+
+            reviewEntity.setStatus("REPLIED");
+            ReviewEntity updatedReview = reviewRepository.save(reviewEntity);
+
+            ReviewResponseDto responseDto = ReviewMapper.toDto(updatedReview);
+            responseDto.setReply(ReviewMapper.toDto(replyEntity));
+
+            return responseDto;
+        } catch (Exception e) {
+            log.error("Error adding vendor reply for review {}: {}", reviewId, e.getMessage(), e);
+            throw new RuntimeException("Failed to add vendor reply: " + e.getMessage(), e);
         }
-
-        ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new EntityNotFoundException("Review not found with id: " + reviewId));
-
-        VendorReplyEntity replyEntity = ReviewMapper.toEntity(vendorReplyRequestDto, reviewEntity);
-        vendorReplyRepository.save(replyEntity);
-
-        reviewEntity.setStatus("REPLIED");
-        ReviewEntity updatedReview = reviewRepository.save(reviewEntity);
-
-        ReviewResponseDto responseDto = ReviewMapper.toDto(updatedReview);
-        responseDto.setReply(ReviewMapper.toDto(replyEntity));
-
-        return responseDto;
     }
 
     @Override
@@ -81,7 +100,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .collect(Collectors.toList());
     }
 
-    private void updateProductRatingAggregate(ReviewEntity review) {
+    private ProductRatingAggregateEntity updateProductRatingAggregate(ReviewEntity review) {
         ProductRatingAggregateEntity aggregate = aggregateRepository.findById(review.getProductId())
                 .orElse(ProductRatingAggregateEntity.builder()
                         .productId(review.getProductId())
@@ -107,6 +126,6 @@ public class ReviewServiceImpl implements ReviewService {
             case EXCELLENT -> aggregate.setCount5Star(aggregate.getCount5Star() + 1);
         }
 
-        aggregateRepository.save(aggregate);
+        return aggregateRepository.save(aggregate);
     }
 }

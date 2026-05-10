@@ -21,6 +21,8 @@ import VerificationPage from './pages/VerificationPage.jsx';
 import ReactivatePage from "./pages/ReactivatePage.jsx";
 import SellerProductsPage from "./pages/SellerProductsPage.jsx";
 import AdminCategoriesPage from "./pages/AdminCategoriesPage.jsx";
+import CartPage from "./pages/CartPage.jsx";
+import ProductDetailsPage from "./pages/ProductDetailsPage.jsx";
 
 // Import Bootstrap CSS
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -70,6 +72,7 @@ const App = () => (
 
                     <Route element={<ProtectedRoute allowedRoles={["BUYER"]} />}>
                         <Route path="/buyer" element={<BuyerPage />} />
+                        <Route path="/cart" element={<CartPage />} />
                     </Route>
 
                     <Route element={<ProtectedRoute allowedRoles={["SELLER"]} />}>
@@ -79,6 +82,7 @@ const App = () => (
 
                     <Route element={<ProtectedRoute allowedRoles={['BUYER', 'SELLER', 'ADMIN']} />}>
                         <Route path="/browse" element={<BrowsePage />} />
+                        <Route path="/product/:id" element={<ProductDetailsPage />} />
                     </Route>
 
                     {/* 404 */}

@@ -21,13 +21,14 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping
+    @PreAuthorize("hasRole('BUYER')")
     public ResponseEntity<ReviewResponseDto> createReview(@RequestBody ReviewRequestDto reviewRequestDto) {
         ReviewResponseDto createdReview = reviewService.createReview(reviewRequestDto);
         return new ResponseEntity<>(createdReview, HttpStatus.CREATED);
     }
 
     @PostMapping("/{reviewId}/reply")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasRole('SELLER')")
     public ResponseEntity<ReviewResponseDto> addVendorReply(@PathVariable UUID reviewId,
                                                             @RequestBody VendorReplyRequestDto vendorReplyRequestDto) {
         ReviewResponseDto updatedReview = reviewService.addVendorReply(reviewId, vendorReplyRequestDto);

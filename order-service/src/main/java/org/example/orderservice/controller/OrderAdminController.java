@@ -7,6 +7,7 @@ import org.example.orderservice.service.OrderService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -15,6 +16,12 @@ import java.util.UUID;
 public class OrderAdminController {
 
     private final OrderService orderService;
+
+    @GetMapping
+    public ResponseEntity<List<OrderResponseDto>> getAllOrdersForAdmin() {
+        List<OrderResponseDto> orders = orderService.getAllOrdersForAdmin();
+        return ResponseEntity.ok(orders);
+    }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<OrderResponseDto> updateOrderStatus(

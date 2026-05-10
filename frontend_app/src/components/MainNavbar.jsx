@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import NotificationBell from './NotificationBell';
 
 const MainNavbar = ({ pageTitle }) => {
@@ -60,6 +60,29 @@ const MainNavbar = ({ pageTitle }) => {
 
                 <NotificationBell />
 
+                {/* Cart Icon for BUYER */}
+                {activeRole === 'BUYER' && (
+                    <Link to="/cart" style={{ textDecoration: 'none' }}>
+                        <button className="action-button" style={{
+                            backgroundColor: '#2196F3',
+                            color: 'white',
+                            border: 'none',
+                            padding: '10px 15px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }} title="Shopping Cart">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                            </svg>
+                        </button>
+                    </Link>
+                )}
+
                 <Link to="/browse" style={{textDecoration: 'none'}}>
                     <button className="action-button" style={{
                         backgroundColor: '#34db90',
@@ -85,7 +108,7 @@ const MainNavbar = ({ pageTitle }) => {
                         Home
                     </button>
                 </Link>
-<button onClick={logout} className="action-button logout-button" style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px'}}>
+                <button onClick={logout} className="action-button logout-button" style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px'}}>
                     Logout
                 </button>
             </div>

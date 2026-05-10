@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -16,4 +17,5 @@ public class OrderLineDto {
     private String productTitle;
     private BigDecimal unitPrice;
     private Integer quantity;
+    private UUID sellerId;
 }
