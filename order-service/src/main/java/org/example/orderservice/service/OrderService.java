@@ -12,6 +12,7 @@ public interface OrderService {
     OrderResponseDto checkout(CheckoutRequestDto checkoutRequest);
     OrderResponseDto getOrderById(UUID orderId);
     List<OrderResponseDto> getAllOrders();
+    List<OrderResponseDto> getAllOrdersForAdmin();
     OrderResponseDto updateOrderStatus(UUID orderId, String newStatus);
     OrderResponseDto cancelOrder(UUID orderId);
 }

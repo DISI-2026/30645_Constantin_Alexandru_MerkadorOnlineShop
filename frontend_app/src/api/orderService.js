@@ -1,6 +1,7 @@
 import { fetchWrapper } from '../utils/fetchWrapper';
 
 const ORDERS_BASE = '/api/orders';
+const ADMIN_ORDERS_BASE = '/api/admin/orders';
 
 export const orderService = {
   checkout: (deliveryAddress) =>
@@ -16,5 +17,14 @@ export const orderService = {
   cancelOrder: (orderId) =>
     fetchWrapper(`${ORDERS_BASE}/${orderId}/cancel`, {
       method: 'POST',
+    }),
+
+  // ADMIN ONLY
+  getAllOrdersAdmin: () => fetchWrapper(ADMIN_ORDERS_BASE),
+
+  updateOrderStatus: (orderId, status) =>
+    fetchWrapper(`${ADMIN_ORDERS_BASE}/${orderId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 };

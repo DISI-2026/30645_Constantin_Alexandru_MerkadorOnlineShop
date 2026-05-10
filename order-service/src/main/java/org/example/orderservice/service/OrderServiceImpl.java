@@ -77,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('BUYER')") // Explicităm că doar BUYER are voie
+    @PreAuthorize("hasRole('BUYER')")
     public OrderResponseDto checkout(CheckoutRequestDto checkoutRequest) {
         CartDto cart = cartService.getCart();
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
@@ -119,6 +119,15 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderResponseDto> getAllOrders() {
         UUID userId = getCurrentUserId();
         return orderRepository.findByCustomerId(userId).stream()
+                .map(OrderMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<OrderResponseDto> getAllOrdersForAdmin() {
+        return orderRepository.findAll().stream()
                 .map(OrderMapper::toDto)
                 .collect(Collectors.toList());
     }
