@@ -7,6 +7,7 @@ import org.example.entities.SellerProfile;
 import org.example.entities.UserProfile;
 import org.example.handlers.exceptions.model.ResourceNotFoundException;
 import org.example.ports.AvatarStoragePort;
+import org.example.ports.LogoStoragePort;
 import org.example.repositories.AddressBookRepository;
 import org.example.repositories.SellerProfileRepository;
 import org.example.repositories.UserProfileRepository;
@@ -15,9 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,15 +27,18 @@ public class UserProfileService {
     private final SellerProfileRepository sellerProfileRepository;
     private final AddressBookRepository addressBookRepository;
     private final AvatarStoragePort avatarStoragePort;
+    private final LogoStoragePort logoStoragePort;
 
     public UserProfileService(UserProfileRepository userProfileRepository,
                               SellerProfileRepository sellerProfileRepository,
                               AddressBookRepository addressBookRepository,
-                              AvatarStoragePort avatarStoragePort) {
+                              AvatarStoragePort avatarStoragePort,
+                              LogoStoragePort logoStoragePort) {
         this.userProfileRepository = userProfileRepository;
         this.sellerProfileRepository = sellerProfileRepository;
         this.addressBookRepository = addressBookRepository;
         this.avatarStoragePort = avatarStoragePort;
+        this.logoStoragePort = logoStoragePort;
     }
 
     @Transactional
@@ -51,6 +53,13 @@ public class UserProfileService {
         UserProfile user = userProfileRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
         return UserProfileBuilder.toUserRespDTO(user);
+    }
+
+    @Transactional
+    public PublicUserProfileRespDTO findUserProfile(UUID id){
+        UserProfile user = userProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(id.toString()));
+        return UserProfileBuilder.toPublicUserRespDTO(user);
     }
 
     @Transactional
@@ -99,9 +108,17 @@ public class UserProfileService {
         dto.setShopName(seller.getShopName());
         dto.setShopSlug(seller.getShopSlug());
         dto.setDescription(seller.getDescription());
+        dto.setLogoUrl(seller.getLogoUrl());
         dto.setAvgRating(seller.getAvgRating());
         dto.setTotalSales(seller.getTotalSales());
         dto.setVerified(seller.getVerified());
+        dto.setCreatedAt(seller.getCreatedAt());
+        dto.setUpdatedAt(seller.getUpdatedAt());
+        dto.setAuthorizedCategories(
+                seller.getAuthorizedCategories() != null
+                        ? new HashSet<>(seller.getAuthorizedCategories()) // avoid LazyInitializationException
+                        : Collections.emptySet()
+        );
         return dto;
     }
 
@@ -128,6 +145,18 @@ public class UserProfileService {
     }
 
     @Transactional
+    public String uploadLogo(UUID userId, org.springframework.web.multipart.MultipartFile file) {
+        SellerProfile seller = sellerProfileRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Seller profile not found for user " + userId));
+
+        String logoUrl = logoStoragePort.uploadLogo(userId, file);
+        seller.setLogoUrl(logoUrl);
+        sellerProfileRepository.save(seller);
+
+        return logoUrl;
+    }
+
+    @Transactional
     public List<SellerProfileRespDTO> getUnverifiedSellers() {
         return sellerProfileRepository.findByVerifiedFalse().stream()
                 .map(seller -> {
@@ -136,9 +165,17 @@ public class UserProfileService {
                     dto.setShopName(seller.getShopName());
                     dto.setShopSlug(seller.getShopSlug());
                     dto.setDescription(seller.getDescription());
+                    dto.setLogoUrl(seller.getLogoUrl());
                     dto.setAvgRating(seller.getAvgRating());
                     dto.setTotalSales(seller.getTotalSales());
                     dto.setVerified(seller.getVerified());
+                    dto.setCreatedAt(seller.getCreatedAt());
+                    dto.setUpdatedAt(seller.getUpdatedAt());
+                    dto.setAuthorizedCategories(
+                            seller.getAuthorizedCategories() != null
+                                    ? new HashSet<>(seller.getAuthorizedCategories())
+                                    : Collections.emptySet()
+                    );
                     return dto;
                 }).collect(Collectors.toList());
     }
@@ -148,7 +185,9 @@ public class UserProfileService {
         SellerProfile sellerProfile = sellerProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("No seller profile was found for user with id = " + userId));
 
-        sellerProfile.setAuthorizedCategories(authorizedCategories);
+        sellerProfile.setAuthorizedCategories(authorizedCategories != null
+        ? new HashSet<>(authorizedCategories)
+        : Collections.emptySet());
         sellerProfile.setVerified(true);
         sellerProfileRepository.save(sellerProfile);
         LOGGER.info("Seller profile has been verified: {}", userId);

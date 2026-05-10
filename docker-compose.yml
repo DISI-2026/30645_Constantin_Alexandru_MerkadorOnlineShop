@@ -136,8 +136,6 @@ services:
           condition: service_healthy
       credential-db:
         condition: service_started
-      user-ms:
-        condition: service_started
     networks:
       - docker_network
     restart: unless-stopped

@@ -1,5 +1,6 @@
 package org.example.dtos.builders;
 
+import org.example.dtos.PublicUserProfileRespDTO;
 import org.example.dtos.UserProfileRespDTO;
 import org.example.entities.UserProfile;
 
@@ -25,6 +26,15 @@ public class UserProfileBuilder {
                 userProfile.getPreferredCategories() != null
                         ? new HashSet<>(userProfile.getPreferredCategories())
                         : Collections.emptySet()
+        );
+    }
+
+    public static PublicUserProfileRespDTO toPublicUserRespDTO(UserProfile userProfile) {
+
+        return new PublicUserProfileRespDTO(
+                userProfile.getFirstName(),
+                userProfile.getLastName(),
+                userProfile.getAvatarUrl()
         );
     }
 }

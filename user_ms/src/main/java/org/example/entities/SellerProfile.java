@@ -37,11 +37,14 @@ public class SellerProfile {
     @Column(name = "description", length = 1000)
     private String description;
 
+    @Column(name = "logo_url")
+    private String logoUrl;
+
     @Column(name = "avg_rating")
     private Double avgRating = 0.0;
 
     @Column(name = "total_sales")
-    private Integer totalSales = 0;
+    private Double totalSales = 0.0;
 
     @Column(name = "is_verified")
     private Boolean verified = false;
@@ -72,10 +75,12 @@ public class SellerProfile {
     public void setShopSlug(String shopSlug) { this.shopSlug = shopSlug; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getLogoUrl() { return logoUrl; }
+    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
     public Double getAvgRating() { return avgRating; }
     public void setAvgRating(Double avgRating) { this.avgRating = avgRating; }
-    public Integer getTotalSales() { return totalSales; }
-    public void setTotalSales(Integer totalSales) { this.totalSales = totalSales; }
+    public Double getTotalSales() { return totalSales; }
+    public void setTotalSales(Double totalSales) { this.totalSales = totalSales; }
     public Boolean getVerified() { return verified; }
     public void setVerified(Boolean verified) { this.verified = verified; }
     public LocalDateTime getCreatedAt() { return createdAt; }
