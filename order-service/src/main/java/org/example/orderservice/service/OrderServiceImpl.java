@@ -77,6 +77,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    @PreAuthorize("hasRole('BUYER')") // Explicităm că doar BUYER are voie
     public OrderResponseDto checkout(CheckoutRequestDto checkoutRequest) {
         CartDto cart = cartService.getCart();
         if (cart.getItems() == null || cart.getItems().isEmpty()) {
@@ -105,7 +106,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN') or @orderServiceImpl.isOrderOwner(authentication, #orderId)")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId))")
     public OrderResponseDto getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
                 .map(OrderMapper::toDto)
@@ -114,6 +115,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('BUYER')")
     public List<OrderResponseDto> getAllOrders() {
         UUID userId = getCurrentUserId();
         return orderRepository.findByCustomerId(userId).stream()
@@ -149,7 +151,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    @PreAuthorize("@orderServiceImpl.isOrderOwner(authentication, #orderId)")
+    @PreAuthorize("hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId)")
     public OrderResponseDto cancelOrder(UUID orderId) {
         return updateOrderStatusForOwner(orderId, "CANCELLED");
     }
