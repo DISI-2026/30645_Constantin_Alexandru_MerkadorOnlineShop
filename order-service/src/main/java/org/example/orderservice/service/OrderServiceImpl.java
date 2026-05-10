@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.orderservice.dto.*;
 import org.example.orderservice.dto.event.OrderPlacedEvent;
 import org.example.orderservice.dto.event.OrderStatusChangedEvent;
+import org.example.orderservice.dto.event.OrderStockReserveMessage;
 import org.example.orderservice.infrastructure.entity.Order;
 import org.example.orderservice.infrastructure.entity.OrderLine;
 import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
@@ -71,7 +72,17 @@ public class OrderServiceImpl implements OrderService {
         order.setStatusHistory(List.of(initialStatus));
 
         Order savedOrder = orderRepository.save(order);
+        
+        // 1. Publish generic event for notification service
         publishOrderPlacedEvent(savedOrder);
+        
+        // 2. Publish specific commands to product service to reserve stock
+        for (OrderLine line : orderLines) {
+            orderEventPublisher.sendStockReserveCommand(
+                new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), savedOrder.getId())
+            );
+        }
+
         return OrderMapper.toDto(savedOrder);
     }
 
@@ -154,7 +165,19 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
 
         Order updatedOrder = orderRepository.save(order);
+        
+        // 1. Publish generic event for notification service
         publishOrderStatusChangedEvent(updatedOrder, oldStatus);
+        
+        // 2. If cancelled, release stock in product service
+        if ("CANCELLED".equals(newStatus)) {
+            for (OrderLine line : order.getOrderLines()) {
+                orderEventPublisher.sendStockReleaseCommand(
+                    new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), order.getId())
+                );
+            }
+        }
+
         return OrderMapper.toDto(updatedOrder);
     }
 
