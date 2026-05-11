@@ -6,10 +6,15 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
+import org.springframework.amqp.support.converter.Jackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class RabbitMQConfig {
@@ -29,7 +34,16 @@ public class RabbitMQConfig {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
-        converter.setClassMapper(null);
+
+        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+        Map<String, Class<?>> idClassMapping = new HashMap<>();
+        idClassMapping.put("org.example.orderservice.dto.event.OrderPlacedEvent", org.example.notificationservice.dto.event.OrderPlacedEvent.class);
+        idClassMapping.put("org.example.orderservice.dto.event.OrderStatusChangedEvent", org.example.notificationservice.dto.event.OrderStatusChangedEvent.class);
+        typeMapper.setIdClassMapping(idClassMapping);
+
+        typeMapper.addTrustedPackages("*");
+
+        converter.setJavaTypeMapper(typeMapper);
         return converter;
     }
 
@@ -70,8 +84,6 @@ public class RabbitMQConfig {
 
     @Bean
     public Binding bindReviewQueueToReviewExchange(Queue reviewQueueForNotification, TopicExchange reviewEventsExchange) {
-        return BindingBuilder.bind(reviewQueueForNotification).to(reviewEventsExchange).with("review.notifications"); // Routing key for review notifications
+        return BindingBuilder.bind(reviewQueueForNotification).to(reviewEventsExchange).with("review.notifications");
     }
 }
-
-
