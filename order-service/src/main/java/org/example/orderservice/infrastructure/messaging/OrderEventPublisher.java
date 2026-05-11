@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.orderservice.dto.event.OrderPlacedEvent;
 import org.example.orderservice.dto.event.OrderStatusChangedEvent;
 import org.example.orderservice.dto.event.OrderStockReserveMessage;
+import org.example.orderservice.dto.event.SellerSalesMessage;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
@@ -35,5 +36,12 @@ public class OrderEventPublisher {
     public void sendStockReleaseCommand(OrderStockReserveMessage message) {
         log.info("Sending stock release command to Product Service for productId={} orderId={}", message.getProductId(), message.getOrderId());
         rabbitTemplate.convertAndSend(RabbitMQConfig.PRODUCT_SERVICE_EXCHANGE, RabbitMQConfig.ORDER_RELEASE_ROUTING_KEY, message);
+    }
+
+    // --- Commands to User Service (Seller Metrics) ---
+
+    public void sendSellerSalesUpdate(SellerSalesMessage message) {
+        log.info("Sending sales update to User Service for sellerId={} amount={}", message.getVendorId(), message.getTotalAmount());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_MS_ORDER_EXCHANGE, RabbitMQConfig.SELLER_SALES_ROUTING_KEY, message);
     }
 }

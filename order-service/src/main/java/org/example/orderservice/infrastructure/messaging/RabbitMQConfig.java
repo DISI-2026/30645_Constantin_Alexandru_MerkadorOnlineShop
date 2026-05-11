@@ -16,14 +16,19 @@ public class RabbitMQConfig {
 
     // Exchange for broadcasting order events (to notifications, etc.)
     public static final String ORDER_EVENTS_EXCHANGE = "order.events.exchange";
-    public static final String ORDER_QUEUE_FOR_NOTIFICATION = "notification.service.order.queue";
 
     // Exchange for direct communication with product-service
     public static final String PRODUCT_SERVICE_EXCHANGE = "product.exchange";
     public static final String ORDER_RESERVE_ROUTING_KEY = "product.order.reserve";
     public static final String ORDER_RELEASE_ROUTING_KEY = "product.order.release";
 
-    // Queue for consuming events from user-service
+    public static final String USER_MS_ORDER_EXCHANGE = "order-exchange";
+    public static final String SELLER_SALES_ROUTING_KEY = "order.seller.sales";
+
+    public static final String AUTH_EXCHANGE = "auth-exchange";
+    public static final String ORDER_SERVICE_USER_SYNC_QUEUE = "order.service.user.sync.queue";
+    public static final String USER_DELETED_ROUTING_KEY = "auth.user.deleted";
+
     public static final String USER_CLIENT_QUEUE = "user.client.events.queue";
 
     @Bean
@@ -53,7 +58,27 @@ public class RabbitMQConfig {
         return new TopicExchange(PRODUCT_SERVICE_EXCHANGE);
     }
 
+    @Bean
+    public TopicExchange userMsOrderExchange() {
+        return new TopicExchange(USER_MS_ORDER_EXCHANGE);
+    }
+
     // --- CONSUMER CONFIGURATIONS ---
+
+    @Bean
+    public TopicExchange authExchange() {
+        return new TopicExchange(AUTH_EXCHANGE);
+    }
+
+    @Bean
+    public Queue orderUserSyncQueue() {
+        return new Queue(ORDER_SERVICE_USER_SYNC_QUEUE, true);
+    }
+
+    @Bean
+    public Binding bindOrderUserSyncQueue() {
+        return BindingBuilder.bind(orderUserSyncQueue()).to(authExchange()).with(USER_DELETED_ROUTING_KEY);
+    }
 
     @Bean
     public Queue userClientQueue() {

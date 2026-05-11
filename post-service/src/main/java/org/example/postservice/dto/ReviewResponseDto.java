@@ -16,4 +16,5 @@ public class ReviewResponseDto {
     private String status;
     private LocalDateTime createdAt;
     private VendorReplyResponseDto reply;
+    private UUID sellerId;
 }

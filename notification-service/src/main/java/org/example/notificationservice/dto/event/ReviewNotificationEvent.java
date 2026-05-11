@@ -23,4 +23,5 @@ public class ReviewNotificationEvent {
     private String body;
     private String status;
     private LocalDateTime createdAt;
+    private UUID sellerId;
 }

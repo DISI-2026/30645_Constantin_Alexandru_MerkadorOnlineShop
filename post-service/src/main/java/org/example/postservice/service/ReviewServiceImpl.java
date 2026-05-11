@@ -82,6 +82,8 @@ public class ReviewServiceImpl implements ReviewService {
             ReviewResponseDto responseDto = ReviewMapper.toDto(updatedReview);
             responseDto.setReply(ReviewMapper.toDto(replyEntity));
 
+            notificationPublisher.publishReviewNotification(responseDto);
+
             return responseDto;
         } catch (Exception e) {
             log.error("Error adding vendor reply for review {}: {}", reviewId, e.getMessage(), e);

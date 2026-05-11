@@ -11,4 +11,5 @@ public class ReviewRequestDto {
     private String orderId;
     private Integer rating;
     private String body;
+    private UUID sellerId;
 }
