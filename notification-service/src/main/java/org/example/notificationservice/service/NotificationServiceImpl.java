@@ -75,11 +75,19 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void processReviewPosted(ReviewNotificationEvent event) {
-        String title = "Review Submitted";
-        String message = String.format(
-                "Your review for product #%s has been submitted with a %d-star rating.",
-                event.getProductId(), event.getRating()
-        );
+        String title;
+        String message;
+
+        if ("REPLIED".equals(event.getStatus())) {
+            title = "Seller Replied to Your Review";
+            message = "The seller has replied to your review for a product.";
+        } else {
+            title = "Review Submitted";
+            message = String.format(
+                    "Your review has been submitted with a %d-star rating.",
+                    event.getRating()
+            );
+        }
 
         Notification notification = Notification.builder()
                 .userId(event.getCustomerId())
@@ -91,7 +99,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         notification = notificationRepository.save(notification);
         pushToUser(event.getCustomerId(), notification);
-        log.info("Processed REVIEW_POSTED event for user {}", event.getCustomerId());
+        log.info("Processed REVIEW event (status={}) for user {}", event.getStatus(), event.getCustomerId());
     }
 
     @Override
