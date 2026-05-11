@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import BrowseNavbar from '../components/BrowseNavbar.jsx';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import '../styles/BrowsePage.css';
 
@@ -25,7 +24,6 @@ const extractPageInfo = (response) => {
 };
 
 const BrowsePage = () => {
-  const { activeRole } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);

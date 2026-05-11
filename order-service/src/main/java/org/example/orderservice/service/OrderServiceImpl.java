@@ -165,6 +165,22 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
+        // Check if the user that requested the update is an admin or the seller of the order
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // must be the seller of this order, not a different seller
+        if (!isAdmin) {
+            UUID currentUserId = getCurrentUserId();
+            boolean isSellerForOrder = order.getOrderLines().stream()
+                    .anyMatch(line -> currentUserId.equals(line.getSellerId()));
+
+            if (!isSellerForOrder) {
+                throw new AccessDeniedException("You are not authorized to update this order's status.");
+            }
+        }
+
         String oldStatus = order.getStatus();
         if (List.of("CANCELLED", "DELIVERED").contains(oldStatus)) {
             throw new IllegalStateException("Cannot change status of a completed or cancelled order.");

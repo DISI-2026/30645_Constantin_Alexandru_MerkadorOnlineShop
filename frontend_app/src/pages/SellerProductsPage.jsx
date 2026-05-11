@@ -1,9 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
+import { useAuth } from '../context/AuthContext';
 import { productService, getProductImageUrl } from '../api/productService';
 import { categoryService } from '../api/categoryService';
 import { orderService } from '../api/orderService';
+import { getSellerProfile } from '../api/userService';
 import '../styles/SellerProductsPage.css';
 
 const extractList = (response) => {
@@ -29,12 +32,16 @@ const getProductFromResponse = (response) => {
 };
 
 const SellerProductsPage = () => {
+  const { userId } = useAuth();
+
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('products'); // 'products' or 'orders'
 
   // --- Products State ---
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  const [isProfileMissing, setIsProfileMissing] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedProductImages, setSelectedProductImages] = useState([]);
@@ -72,71 +79,74 @@ const SellerProductsPage = () => {
       fallback
     );
   };
-
-  const loadCategories = async () => {
-    try {
-      const response = await categoryService.getCategories();
-      const list = extractList(response);
-
-      setCategories(list);
-
-      if (list.length > 0) {
-        setProductForm((prev) => ({
-          ...prev,
-          categoryId: prev.categoryId || list[0].id,
-        }));
-      }
-    } catch (error) {
-      console.error('Categories error:', error);
-      alert('Could not load categories.');
-    }
-  };
-
-  const loadMyProducts = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoadingProducts(true);
 
-      const response = await productService.getMyProducts({
-        page: 0,
-        size: 50,
-      });
+        // Load the seller profile if it exists
+        let profileData = null;
+        try {
+            const profileRes = await getSellerProfile(userId);
+            profileData = profileRes.data || profileRes;
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                setIsProfileMissing(true);
+                setLoadingProducts(false);
+                return;
+            }
+        }
 
-      const productList = extractList(response);
+        // Load categories
+        const catRes = await categoryService.getCategories();
+        const allCategories = extractList(catRes);
 
-      const productsWithImages = await Promise.all(
-        productList.map(async (product) => {
-          try {
-            const imagesResponse = await productService.getProductImages(product.id);
-            const images = extractList(imagesResponse);
+        // If verified, we only show categories that the user is authorized to sell in
+        if (profileData?.verified && profileData?.authorizedCategories?.length > 0) {
+            const authorizedSet = new Set(profileData.authorizedCategories);
+            // We check for the presence of the category name, slug, and title in the authorized set
+            const filteredCats = allCategories.filter(c =>
+                authorizedSet.has(c.name) || authorizedSet.has(c.slug) || authorizedSet.has(c.title)
+            );
+            setCategories(filteredCats);
 
-            return {
-              ...product,
-              images,
-            };
-          } catch (error) {
-            console.error(`Images error for product ${product.id}:`, error);
+            if (filteredCats.length > 0) {
+                setProductForm(prev => ({ ...prev, categoryId: prev.categoryId || filteredCats[0].id }));
+            }
+        } else {
+            // If not verified, we show all categories
+            setCategories(allCategories);
+            if (allCategories.length > 0) {
+                setProductForm(prev => ({ ...prev, categoryId: prev.categoryId || allCategories[0].id }));
+            }
+        }
 
-            return {
-              ...product,
-              images: product.images || [],
-            };
-          }
-        })
-      );
+        // Load products
+        const response = await productService.getMyProducts({ page: 0, size: 50 });
+        const productList = extractList(response);
+        const productsWithImages = await Promise.all(
+            productList.map(async (product) => {
+                try {
+                    const imagesResponse = await productService.getProductImages(product.id);
+                    return { ...product, images: extractList(imagesResponse) };
+                } catch (error) {
+                    console.error(`Images error for product ${product.id}:`, error);
 
-      setProducts(productsWithImages);
+                    return {
+                        ...product,
+                        images: product.images || [],
+                    };
+                }
+            })
+        );
+        setProducts(productsWithImages);
+
     } catch (error) {
-      console.error('My products error:', error);
-      alert(
-        getErrorMessage(
-          error,
-          'Could not load your products. Please check that you are logged in as a seller.'
-        )
-      );
+        console.error('Initialization error:', error);
+        alert('Could not initialize the page correctly.');
     } finally {
       setLoadingProducts(false);
     }
-  };
+  }, [userId]);
 
   const loadProductImages = async (product) => {
     try {
@@ -177,12 +187,11 @@ const SellerProductsPage = () => {
 
   useEffect(() => {
     if (activeTab === 'products') {
-        loadCategories();
-        loadMyProducts();
+        loadData().catch(console.error);
     } else if (activeTab === 'orders') {
         fetchOrders();
     }
-  }, [activeTab, fetchOrders]);
+  }, [loadData, userId, activeTab, fetchOrders]);
 
   const handleProductChange = (e) => {
     const { name, value, files } = e.target;
@@ -280,7 +289,7 @@ const SellerProductsPage = () => {
 
       e.target.reset();
 
-      await loadMyProducts();
+      await loadData();
       alert('Product added successfully.');
     } catch (error) {
       console.error('Create product error:', error);
@@ -557,6 +566,26 @@ const SellerProductsPage = () => {
     marginBottom: '20px'
   });
 
+    // --- If profile is missing, show a message ---
+  if (isProfileMissing) {
+    return (
+        <div className="seller-products-page">
+            <div className="seller-products-container">
+                <MainNavbar />
+                <div style={{ textAlign: 'center', marginTop: '100px', background: '#fff', padding: '40px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+                    <h2 style={{ color: '#e74c3c' }}>Profile Setup Required</h2>
+                    <p style={{ fontSize: '1.1rem', color: '#555', margin: '20px 0' }}>
+                        You must set up your Shop Profile (Name, Description, Logo) before you can add or manage products.
+                    </p>
+                    <Link to="/seller" style={{ padding: '10px 20px', background: '#3498db', color: '#fff', textDecoration: 'none', borderRadius: '5px', fontWeight: 'bold' }}>
+                        Go to Shop Settings
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="seller-products-page">
       <div className="seller-products-container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 20px' }}>
@@ -582,10 +611,10 @@ const SellerProductsPage = () => {
                     </p>
                   </div>
 
-                  <button type="button" className="seller-products-refresh" onClick={loadMyProducts}>
-                    Refresh
-                  </button>
-                </section>
+          <button type="button" className="seller-products-refresh" onClick={loadData}>
+            Refresh
+          </button>
+        </section>
 
                 <form className="seller-product-form" onSubmit={handleCreateProduct}>
                   <h3>Add new product</h3>
@@ -765,7 +794,7 @@ const SellerProductsPage = () => {
                             </strong>
 
                             <span>Stock: {product.stock}</span>
-                            
+
                             <span style={{ marginLeft: '10px', color: '#f39c12', fontWeight: 'bold' }}>
                                 ★ {product.avgRating ?? product.rating ?? '0.0'} ({product.reviewCount || 0})
                             </span>
@@ -927,7 +956,7 @@ const SellerProductsPage = () => {
                                         </td>
                                         <td>
                                             <div className="d-flex gap-2 flex-column">
-                                                <button 
+                                                <button
                                                     className="btn btn-sm btn-outline-primary"
                                                     onClick={() => {
                                                         setSelectedOrder(order);
@@ -935,7 +964,7 @@ const SellerProductsPage = () => {
                                                 >
                                                     View Details
                                                 </button>
-                                                <select 
+                                                <select
                                                     className="form-select form-select-sm"
                                                     value={order.status}
                                                     onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
@@ -975,7 +1004,7 @@ const SellerProductsPage = () => {
                                 <strong>Date:</strong> {new Date(selectedOrder.placedAt).toLocaleString()} <br/>
                                 <strong>Delivery Address:</strong> {selectedOrder.deliveryAddress}
                             </div>
-                            
+
                             <h6>Your Items in this order:</h6>
                             <table className="table table-sm table-striped">
                                 <thead>
@@ -997,7 +1026,7 @@ const SellerProductsPage = () => {
                                     ))}
                                 </tbody>
                             </table>
-                            
+
                             <div className="alert alert-info mt-3 py-2">
                                 <small>Note: This order may contain items from other sellers. The items listed above are only the ones provided by you.</small>
                             </div>

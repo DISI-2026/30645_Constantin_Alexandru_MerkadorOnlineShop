@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import NotificationBell from './NotificationBell';
 
 const MainNavbar = ({ pageTitle }) => {

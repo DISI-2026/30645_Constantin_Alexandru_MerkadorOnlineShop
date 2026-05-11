@@ -6,6 +6,7 @@ const TYPE_ICON = {
     ORDER_PLACED: '🛍️',
     ORDER_STATUS_CHANGED: '📦',
     REVIEW_POSTED: '⭐',
+    VERIFICATION_REQUEST: '🛡️',
 };
 
 const timeAgo = (dateString) => {
@@ -24,18 +25,36 @@ const BellIcon = () => (
     </svg>
 );
 
+const BackIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+    </svg>
+);
+
 const NotificationBell = () => {
     const {
-        notifications, unreadCount, isConnected,
-        isLoading, hasMore,
-        markAsRead, markAllAsRead, deleteNotification, loadMore,
+        userNotifications,
+        adminNotifications,
+        totalUnreadCount,
+        userUnreadCount,
+        adminUnreadCount,
+        isAdmin,
+        isLoading,
+        userHasMore,
+        adminHasMore,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+        loadMoreUser,
+        loadMoreAdmin,
     } = useNotifications();
 
     const [open, setOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('PERSONAL');
+    const [selectedNotif, setSelectedNotif] = useState(null);
     const panelRef = useRef(null);
     const buttonRef = useRef(null);
 
-    // Close panel when clicking outside
     useEffect(() => {
         if (!open) return;
         const handleClick = (e) => {
@@ -50,97 +69,168 @@ const NotificationBell = () => {
         return () => document.removeEventListener('mousedown', handleClick);
     }, [open]);
 
-    const handleItemClick = (notification) => {
-        if (!notification.read) {
-            markAsRead(notification.id);
-        }
+    // Clear detail view whenever the panel closes
+    useEffect(() => {
+        if (!open) setSelectedNotif(null);
+    }, [open]);
+
+    const handleItemClick = (n) => {
+        if (!n.read) markAsRead(n.id, activeTab === 'ADMIN');
+        setSelectedNotif(n);
     };
 
     const handleDelete = (e, id) => {
         e.stopPropagation();
-        deleteNotification(id);
+        deleteNotification(id, activeTab === 'ADMIN');
     };
+
+    const handleDeleteFromDetail = (id) => {
+        deleteNotification(id, activeTab === 'ADMIN');
+        setSelectedNotif(null);
+    };
+
+    const currentNotifications = activeTab === 'PERSONAL' ? userNotifications : adminNotifications;
+    const currentHasMore       = activeTab === 'PERSONAL' ? userHasMore : adminHasMore;
+    const currentLoadMore      = activeTab === 'PERSONAL' ? loadMoreUser : loadMoreAdmin;
 
     return (
         <div className="notif-bell">
             <button
                 ref={buttonRef}
-                className={`notif-bell-btn${unreadCount > 0 ? ' has-unread' : ''}`}
+                className={`notif-bell-btn${totalUnreadCount > 0 ? ' has-unread' : ''}`}
                 onClick={() => setOpen(o => !o)}
-                aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+                aria-label={`Notifications${totalUnreadCount > 0 ? ` (${totalUnreadCount} unread)` : ''}`}
                 title="Notifications"
             >
                 <BellIcon />
-                {unreadCount > 0 && (
+                {totalUnreadCount > 0 && (
                     <span className="notif-badge">
-                        {unreadCount > 99 ? '99+' : unreadCount}
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                     </span>
                 )}
             </button>
 
             {open && (
                 <div ref={panelRef} className="notif-panel">
-                    <div className="notif-panel-header">
-                        <span className="notif-panel-title">Notifications</span>
-                        <div className="notif-panel-header-actions">
-                            {unreadCount > 0 && (
-                                <button className="notif-mark-all-btn" onClick={markAllAsRead}>
-                                    Mark all read
-                                </button>
-                            )}
-                            <span
-                                className={`notif-connected-dot${isConnected ? '' : ' disconnected'}`}
-                                title={isConnected ? 'Live' : 'Reconnecting…'}
-                            />
-                        </div>
-                    </div>
 
-                    <div className="notif-list">
-                        {notifications.length === 0 && !isLoading ? (
-                            <div className="notif-empty">
-                                <span className="notif-empty-icon">🔔</span>
-                                <span className="notif-empty-text">You're all caught up!</span>
-                            </div>
-                        ) : (
-                            notifications.map(n => (
-                                <div
-                                    key={n.id}
-                                    className={`notif-item${n.read ? '' : ' unread'}`}
-                                    onClick={() => handleItemClick(n)}
+                    {/* ── DETAIL VIEW ──────────────────────────────── */}
+                    {selectedNotif ? (
+                        <>
+                            <div className="notif-panel-header">
+                                <button
+                                    className="notif-back-btn"
+                                    onClick={() => setSelectedNotif(null)}
+                                    aria-label="Back to notifications"
                                 >
-                                    <div className={`notif-type-icon ${n.type}`}>
-                                        {TYPE_ICON[n.type] ?? '🔔'}
-                                    </div>
-                                    <div className="notif-content">
-                                        <div className="notif-title-row">
-                                            <span className="notif-title">{n.title}</span>
-                                            <span className="notif-time">{timeAgo(n.createdAt)}</span>
-                                        </div>
-                                        <p className="notif-message">{n.message}</p>
-                                    </div>
-                                    {!n.read && <span className="notif-unread-dot" />}
+                                    <BackIcon /> Back
+                                </button>
+                                <button
+                                    className="notif-delete-detail-btn"
+                                    onClick={() => handleDeleteFromDetail(selectedNotif.id)}
+                                    title="Delete"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="notif-detail">
+                                <div className={`notif-type-icon notif-detail-icon ${selectedNotif.type}`}>
+                                    {TYPE_ICON[selectedNotif.type] ?? '🔔'}
+                                </div>
+                                <h3 className="notif-detail-title">
+                                    {selectedNotif.title || selectedNotif.type.replace(/_/g, ' ')}
+                                </h3>
+                                <span className="notif-detail-time">{timeAgo(selectedNotif.createdAt)}</span>
+                                <p className="notif-detail-message">{selectedNotif.message}</p>
+                            </div>
+                        </>
+                    ) : (
+                        /* ── LIST VIEW ───────────────────────────────────── */
+                        <>
+                            <div className="notif-panel-header">
+                                <span className="notif-panel-title">Notifications</span>
+                                <div className="notif-panel-header-actions">
+                                    {activeTab === 'PERSONAL' && userUnreadCount > 0 && (
+                                        <button className="notif-mark-all-btn" onClick={markAllAsRead}>
+                                            Mark all read
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {isAdmin && (
+                                <div className="notif-tabs">
                                     <button
-                                        className="notif-delete-btn"
-                                        onClick={(e) => handleDelete(e, n.id)}
-                                        title="Delete"
+                                        className={`notif-tab${activeTab === 'PERSONAL' ? ' active' : ''}`}
+                                        onClick={() => setActiveTab('PERSONAL')}
                                     >
-                                        ✕
+                                        Personal
+                                        {userUnreadCount > 0 && (
+                                            <span className="notif-tab-badge">{userUnreadCount}</span>
+                                        )}
+                                    </button>
+                                    <button
+                                        className={`notif-tab${activeTab === 'ADMIN' ? ' active admin' : ''}`}
+                                        onClick={() => setActiveTab('ADMIN')}
+                                    >
+                                        Admin inbox
+                                        {adminUnreadCount > 0 && (
+                                            <span className="notif-tab-badge">{adminUnreadCount}</span>
+                                        )}
                                     </button>
                                 </div>
-                            ))
-                        )}
-                    </div>
+                            )}
 
-                    {(hasMore || isLoading) && (
-                        <div className="notif-panel-footer">
-                            <button
-                                className="notif-load-more-btn"
-                                onClick={loadMore}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? 'Loading…' : 'Load more'}
-                            </button>
-                        </div>
+                            <div className="notif-list">
+                                {currentNotifications.length === 0 && !isLoading ? (
+                                    <div className="notif-empty">
+                                        <span className="notif-empty-icon">🔔</span>
+                                        <span className="notif-empty-text">You're all caught up!</span>
+                                    </div>
+                                ) : (
+                                    currentNotifications.map(n => (
+                                        <div
+                                            key={n.id}
+                                            className={`notif-item${n.read ? '' : ' unread'}`}
+                                            onClick={() => handleItemClick(n)}
+                                        >
+                                            <div className={`notif-type-icon ${n.type}`}>
+                                                {TYPE_ICON[n.type] ?? '🔔'}
+                                            </div>
+                                            <div className="notif-content">
+                                                <div className="notif-title-row">
+                                                <span className="notif-title">
+                                                    {n.title || n.type.replace(/_/g, ' ')}
+                                                </span>
+                                                    <span className="notif-time">{timeAgo(n.createdAt)}</span>
+                                                </div>
+                                                <p className="notif-message">{n.message}</p>
+                                            </div>
+                                            {!n.read && <span className="notif-unread-dot" />}
+                                            <button
+                                                className="notif-delete-btn"
+                                                onClick={(e) => handleDelete(e, n.id)}
+                                                title="Delete"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            {(currentHasMore || isLoading) && (
+                                <div className="notif-panel-footer">
+                                    <button
+                                        className="notif-load-more-btn"
+                                        onClick={currentLoadMore}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? 'Loading…' : 'Load more'}
+                                    </button>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
             )}

@@ -15,6 +15,13 @@ export const getUserById = async (id) => {
     return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}`, { method: 'GET' });
 };
 
+// this can be used by anyone (example for reviews) to get the user's name and profile picture
+export const getPublicUserProfile = async (id) => {
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/user_profile`, {
+        method: 'GET'
+    });
+};
+
 export const updateUser = async (id, updateData) => {
     return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/update`, {
         method: 'PUT',
@@ -45,6 +52,15 @@ export const createSellerProfile = async (id, profileData) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profileData),
+    });
+};
+
+export const uploadLogo = async (id, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/logo`, {
+        method: 'POST',
+        body: formData,
     });
 };
 

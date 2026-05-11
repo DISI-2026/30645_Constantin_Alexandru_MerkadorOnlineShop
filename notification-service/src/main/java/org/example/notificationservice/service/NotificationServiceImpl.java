@@ -15,6 +15,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Slf4j
@@ -24,6 +25,8 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    // universal UUID that addresses all admins
+    public static final UUID ADMIN_GROUP_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     @Override
     @Transactional
@@ -124,6 +127,36 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     public void deleteNotification(UUID notificationId, UUID userId) {
         notificationRepository.deleteByIdAndUserId(notificationId, userId);
+    }
+
+    @Override
+    public void sendToAdmins(String messageText, NotificationType type) {
+        // Save notification to DB
+        Notification notification = Notification.builder()
+                .userId(ADMIN_GROUP_ID)
+                .message(messageText)
+                .type(type)
+                .title("Shop Verification Request")
+                .read(false)
+                .createdAt(LocalDateTime.now())
+                .payload(null)
+                .build();
+
+        notification = notificationRepository.save(notification);
+
+        NotificationDto dto = new NotificationDto(
+                notification.getId(),
+                notification.getUserId(),
+                notification.getType(),
+                notification.getTitle(),
+                notification.getMessage(),
+                notification.isRead(),
+                notification.getCreatedAt(),
+                notification.getPayload()
+        );
+
+        // send it through the admin's channel
+        messagingTemplate.convertAndSend("/topic/admins", dto);
     }
 
     private void pushToUser(UUID userId, Notification notification) {

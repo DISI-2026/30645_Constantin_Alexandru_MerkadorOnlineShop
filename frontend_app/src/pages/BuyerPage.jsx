@@ -301,7 +301,6 @@ const BuyerPage = () => {
                     <div className="buyer-tabs-container">
                         <button className={`buyer-tab-btn ${tab === 'account' ? 'active' : ''}`} onClick={() => setTab('account')}>Account</button>
                         <button className={`buyer-tab-btn ${tab === 'orders' ? 'active' : ''}`} onClick={() => setTab('orders')}>My Orders</button>
-                        <button className={`buyer-tab-btn ${tab === 'wishlist' ? 'active' : ''}`} onClick={() => setTab('wishlist')}>Wishlist</button>
                     </div>
 
                     {/* ACCOUNT TAB CONTENT */}
@@ -591,13 +590,6 @@ const BuyerPage = () => {
                                     </table>
                                 </div>
                             )}
-                        </div>
-                    )}
-                    
-                    {tab === 'wishlist' && (
-                        <div>
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Saved Items</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>Products you want to purchase later will appear here.</p>
                         </div>
                     )}
                 </div>

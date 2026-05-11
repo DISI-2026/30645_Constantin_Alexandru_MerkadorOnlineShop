@@ -32,8 +32,14 @@ public class UserProfileController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("principal == #id.toString() or hasRole('ADMIN')")
     public ResponseEntity<UserProfileRespDTO> getUserById(@PathVariable UUID id) {
         return ResponseEntity.ok().body(userProfileService.findUserById(id));
+    }
+
+    @GetMapping("/{id}/user_profile")
+    public ResponseEntity<PublicUserProfileRespDTO> getUserProfile(@PathVariable UUID id) {
+        return ResponseEntity.ok().body(userProfileService.findUserProfile(id));
     }
 
     @PutMapping("/{id}/update")
@@ -56,7 +62,7 @@ public class UserProfileController {
     // ==========================================
 
     @GetMapping("/{id}/seller-profile")
-    @PreAuthorize("hasRole('SELLER') and principal == #id.toString() or hasRole('ADMIN')")
+    // seller profile must be public
     public ResponseEntity<SellerProfileRespDTO> getSellerProfile(@PathVariable UUID id) {
         return ResponseEntity.ok(userProfileService.getSellerProfile(id));
     }
@@ -80,6 +86,15 @@ public class UserProfileController {
         userProfileService.createOrUpdateSellerProfile(id, dto);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{id}/logo")
+    @PreAuthorize("hasRole('SELLER') and principal == #id.toString()")
+    public ResponseEntity<Map<String, String>> uploadLogo(@PathVariable UUID id, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        String logoUrl = userProfileService.uploadLogo(id, file);
+        // return as a valid JSON
+        return ResponseEntity.ok(Collections.singletonMap("logoUrl", logoUrl));
+    }
+
 
     @PatchMapping("/{id}/seller-profile/verify")
     @PreAuthorize("hasRole('ADMIN')")

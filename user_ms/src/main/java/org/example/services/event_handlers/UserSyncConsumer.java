@@ -1,6 +1,8 @@
-package org.example.services;
+package org.example.services.event_handlers;
 
 import org.example.entities.UserProfile;
+import org.example.ports.LogoStoragePort;
+import org.example.repositories.SellerProfileRepository;
 import org.example.repositories.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +22,14 @@ public class UserSyncConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserSyncConsumer.class);
     private final UserProfileRepository userProfileRepository;
     private final AvatarStoragePort avatarStoragePort;
+    private final LogoStoragePort logoStoragePort;
+    private final SellerProfileRepository sellerProfileRepository;
 
-    public UserSyncConsumer(UserProfileRepository userProfileRepository, AvatarStoragePort avatarStoragePort) {
+    public UserSyncConsumer(UserProfileRepository userProfileRepository, AvatarStoragePort avatarStoragePort, LogoStoragePort logoStoragePort, SellerProfileRepository sellerProfileRepository) {
         this.userProfileRepository = userProfileRepository;
         this.avatarStoragePort = avatarStoragePort;
+        this.logoStoragePort = logoStoragePort;
+        this.sellerProfileRepository = sellerProfileRepository;
     }
 
     @RabbitListener(queues = "user-profile-queue")
@@ -66,6 +72,8 @@ public class UserSyncConsumer {
         LOGGER.info("Deleting profile for user ID: {}", userId);
         userProfileRepository.deleteById(userId);
         avatarStoragePort.deleteAvatarByUrl(userId.toString());
+        if(sellerProfileRepository.findById(userId).isPresent())
+            logoStoragePort.deleteLogoByUrl(userId.toString());
     }
 
     /**
