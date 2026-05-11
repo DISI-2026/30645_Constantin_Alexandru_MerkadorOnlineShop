@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Data
@@ -20,6 +21,7 @@ public class OrderPlacedEvent {
     private BigDecimal totalAmount;
     private LocalDateTime placedAt;
     private List<OrderItem> items;
+    private Set<UUID> sellerIds;
 
     @Data
     @Builder

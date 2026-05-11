@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -130,7 +131,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId))")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('BUYER') and @orderServiceImpl.isOrderOwner(authentication, #orderId)) or (hasRole('SELLER') and @orderServiceImpl.isSellerOfOrder(authentication, #orderId))")
     public OrderResponseDto getOrderById(UUID orderId) {
         return orderRepository.findById(orderId)
                 .map(OrderMapper::toDto)
@@ -246,6 +247,14 @@ public class OrderServiceImpl implements OrderService {
                 .orElse(false);
     }
 
+    public boolean isSellerOfOrder(Authentication authentication, UUID orderId) {
+        UUID currentUserId = UUID.fromString(authentication.getName());
+        return orderRepository.findById(orderId)
+                .map(order -> order.getOrderLines().stream()
+                        .anyMatch(line -> currentUserId.equals(line.getSellerId())))
+                .orElse(false);
+    }
+
     private OrderResponseDto updateOrderStatusForOwner(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
@@ -261,7 +270,12 @@ public class OrderServiceImpl implements OrderService {
                 .map(line -> new OrderPlacedEvent.OrderItem(line.getProductId(), line.getQuantity()))
                 .collect(Collectors.toList());
 
-        OrderPlacedEvent event = new OrderPlacedEvent(order.getId(), order.getCustomerId(), order.getTotalAmount(), order.getPlacedAt(), eventItems);
+        Set<UUID> sellerIds = order.getOrderLines().stream()
+                .map(OrderLine::getSellerId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+
+        OrderPlacedEvent event = new OrderPlacedEvent(order.getId(), order.getCustomerId(), order.getTotalAmount(), order.getPlacedAt(), eventItems, sellerIds);
         orderEventPublisher.publishOrderPlacedEvent(event);
     }
 

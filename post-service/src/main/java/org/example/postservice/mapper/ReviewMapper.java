@@ -17,6 +17,7 @@ public class ReviewMapper {
                 .rating(dto.getRating())
                 .body(dto.getBody())
                 .status("PENDING")
+                .sellerId(dto.getSellerId())
                 .build();
     }
 
@@ -30,6 +31,7 @@ public class ReviewMapper {
         dto.setBody(entity.getBody());
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setSellerId(entity.getSellerId());
         return dto;
     }
 

@@ -40,6 +40,9 @@ public class ReviewEntity {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "seller_id")
+    private UUID sellerId;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

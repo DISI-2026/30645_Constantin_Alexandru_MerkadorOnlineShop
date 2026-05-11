@@ -8,15 +8,16 @@ export const postService = {
     fetchWrapper(`${REVIEWS_BASE}/product/${productId}`),
 
   // Create a new review (Requires BUYER role)
-  createReview: (customerId, productId, orderId, rating, body) =>
+  createReview: (customerId, productId, orderId, rating, body, sellerId) =>
     fetchWrapper(REVIEWS_BASE, {
       method: 'POST',
       body: JSON.stringify({
         customerId,
         productId,
-        orderId, // Can be null or empty string if not strictly enforced by backend
+        orderId, 
         rating,
-        body
+        body,
+        sellerId
       }),
     }),
 

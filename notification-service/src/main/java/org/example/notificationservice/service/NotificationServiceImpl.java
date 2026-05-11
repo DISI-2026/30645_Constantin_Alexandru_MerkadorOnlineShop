@@ -31,23 +31,42 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void processOrderPlaced(OrderPlacedEvent event) {
-        String title = "Order Placed Successfully";
-        String message = String.format(
+        String buyerTitle = "Order Placed Successfully";
+        String buyerMessage = String.format(
                 "Your order #%s has been placed! Total: $%.2f",
                 event.getOrderId(), event.getTotalAmount()
         );
 
-        Notification notification = Notification.builder()
+        Notification buyerNotification = Notification.builder()
                 .userId(event.getCustomerId())
                 .type(NotificationType.ORDER_PLACED)
-                .title(title)
-                .message(message)
+                .title(buyerTitle)
+                .message(buyerMessage)
                 .payload(event.getOrderId().toString())
                 .build();
 
-        notification = notificationRepository.save(notification);
-        pushToUser(event.getCustomerId(), notification);
-        log.info("Processed ORDER_PLACED event for user {}", event.getCustomerId());
+        buyerNotification = notificationRepository.save(buyerNotification);
+        pushToUser(event.getCustomerId(), buyerNotification);
+        log.info("Processed ORDER_PLACED event for buyer {}", event.getCustomerId());
+
+        if (event.getSellerIds() != null) {
+            String sellerTitle = "New Order Received!";
+            String sellerMessage = String.format("You have received a new order (#%s) containing your products.", event.getOrderId());
+
+            for (UUID sellerId : event.getSellerIds()) {
+                Notification sellerNotification = Notification.builder()
+                        .userId(sellerId)
+                        .type(NotificationType.ORDER_PLACED) // Putem folosi același tip sau să adăugăm unul nou dacă există
+                        .title(sellerTitle)
+                        .message(sellerMessage)
+                        .payload(event.getOrderId().toString())
+                        .build();
+                
+                sellerNotification = notificationRepository.save(sellerNotification);
+                pushToUser(sellerId, sellerNotification);
+                log.info("Processed ORDER_PLACED event for seller {}", sellerId);
+            }
+        }
     }
 
     @Override
@@ -81,25 +100,55 @@ public class NotificationServiceImpl implements NotificationService {
         if ("REPLIED".equals(event.getStatus())) {
             title = "Seller Replied to Your Review";
             message = "The seller has replied to your review for a product.";
+            
+            Notification notification = Notification.builder()
+                    .userId(event.getCustomerId())
+                    .type(NotificationType.REVIEW_POSTED)
+                    .title(title)
+                    .message(message)
+                    .payload(event.getProductId() != null ? event.getProductId().toString() : null)
+                    .build();
+
+            notification = notificationRepository.save(notification);
+            pushToUser(event.getCustomerId(), notification);
+            log.info("Processed REVIEW event (status={}) for buyer {}", event.getStatus(), event.getCustomerId());
+            
         } else {
             title = "Review Submitted";
             message = String.format(
                     "Your review has been submitted with a %d-star rating.",
                     event.getRating()
             );
+            
+            Notification buyerNotification = Notification.builder()
+                    .userId(event.getCustomerId())
+                    .type(NotificationType.REVIEW_POSTED)
+                    .title(title)
+                    .message(message)
+                    .payload(event.getProductId() != null ? event.getProductId().toString() : null)
+                    .build();
+
+            buyerNotification = notificationRepository.save(buyerNotification);
+            pushToUser(event.getCustomerId(), buyerNotification);
+            log.info("Processed REVIEW event (status={}) for buyer {}", event.getStatus(), event.getCustomerId());
+
+            if (event.getSellerId() != null) {
+                String sellerTitle = "New Product Review";
+                String sellerMessage = String.format("A customer has left a %d-star review on your product.", event.getRating());
+                
+                Notification sellerNotification = Notification.builder()
+                        .userId(event.getSellerId())
+                        .type(NotificationType.REVIEW_POSTED)
+                        .title(sellerTitle)
+                        .message(sellerMessage)
+                        .payload(event.getProductId() != null ? event.getProductId().toString() : null)
+                        .build();
+
+                sellerNotification = notificationRepository.save(sellerNotification);
+                pushToUser(event.getSellerId(), sellerNotification);
+                log.info("Processed REVIEW event (status={}) for seller {}", event.getStatus(), event.getSellerId());
+            }
         }
-
-        Notification notification = Notification.builder()
-                .userId(event.getCustomerId())
-                .type(NotificationType.REVIEW_POSTED)
-                .title(title)
-                .message(message)
-                .payload(event.getProductId() != null ? event.getProductId().toString() : null)
-                .build();
-
-        notification = notificationRepository.save(notification);
-        pushToUser(event.getCustomerId(), notification);
-        log.info("Processed REVIEW event (status={}) for user {}", event.getStatus(), event.getCustomerId());
     }
 
     @Override
