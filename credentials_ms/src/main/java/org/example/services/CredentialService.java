@@ -309,8 +309,6 @@ public class CredentialService {
 
     @Transactional
     public void updateStatus(UUID targetUserId, AccountStatus newStatus) {
-        if(newStatus == AccountStatus.PENDING_VERIFICATION) return;
-
         Credential credential = credentialRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException(targetUserId.toString()));
 

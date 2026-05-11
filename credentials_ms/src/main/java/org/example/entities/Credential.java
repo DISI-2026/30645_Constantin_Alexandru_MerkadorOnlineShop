@@ -45,6 +45,12 @@ public class Credential {
     @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL, orphanRemoval = true)
     private CredentialVerification verificationData;
 
+    @OneToMany(mappedBy = "credential", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<RefreshToken> refreshTokens = new HashSet<>();
+
+    @OneToMany(mappedBy = "credential", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<PasswordResetToken> passwordResetTokens = new HashSet<>();
+
     public Credential() {}
 
     public Credential(String email, String passwordHash, AccountStatus status) {
@@ -82,6 +88,12 @@ public class Credential {
     public void setRoles(Set<UserRole> roles) { this.roles = roles; }
 
     public CredentialVerification getVerificationData() { return verificationData; }
+
+    public Set<RefreshToken> getRefreshTokens() { return refreshTokens; }
+    public void setRefreshTokens(Set<RefreshToken> refreshTokens) { this.refreshTokens = refreshTokens; }
+
+    public Set<PasswordResetToken> getPasswordResetTokens() { return passwordResetTokens; }
+    public void setPasswordResetTokens(Set<PasswordResetToken> passwordResetTokens) { this.passwordResetTokens = passwordResetTokens; }
 
     // ne asiguram ca sunt asociate
     public void setVerificationData(CredentialVerification verificationData) {

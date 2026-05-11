@@ -140,7 +140,7 @@
 
 .admin-category-submit {
   border: none;
-  background: #16a34a;
+  background: #2563eb;
   color: white;
   border-radius: 14px;
   padding: 13px 18px;
@@ -149,7 +149,7 @@
 }
 
 .admin-category-submit:hover {
-  background: #15803d;
+  background: #1d4ed8;
 }
 
 .admin-category-submit:disabled {

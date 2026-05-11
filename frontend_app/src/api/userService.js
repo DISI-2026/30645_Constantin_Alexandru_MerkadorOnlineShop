@@ -43,6 +43,10 @@ export const uploadAvatar = async (id, file) => {
 // SELLER ENDPOINTS
 // ==========================================
 
+export const getSellers = async () => {
+    return fetchWrapper(`${BASE_URL}/sellers`, { method: 'GET' });
+};
+
 export const getSellerProfile = async (id) => {
     return fetchWrapper(`${BASE_URL}/${encodeURIComponent(id)}/seller-profile`, { method: 'GET' });
 };

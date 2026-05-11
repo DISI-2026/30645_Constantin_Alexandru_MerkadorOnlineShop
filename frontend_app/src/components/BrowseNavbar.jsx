@@ -33,7 +33,7 @@ const BrowseNavbar = ({ pageTitle }) => {
 
                 {activeRole === 'BUYER' && (
                     <Link to="/cart" style={{ textDecoration: 'none' }}>
-                        <button className="browse-action-button" style={{ backgroundColor: '#2196F3', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 15px' }} title="Shopping Cart">
+                        <button className="browse-action-button" style={{ backgroundColor: '#27ae60', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 15px' }} title="Shopping Cart">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="9" cy="21" r="1"></circle>
                                 <circle cx="20" cy="21" r="1"></circle>

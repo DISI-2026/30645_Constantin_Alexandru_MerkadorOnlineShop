@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import MainNavbar from '../components/MainNavbar.jsx';
+import AdminUserDashboard from '../components/AdminUserDashboard.jsx';
+import StatisticsView from '../components/StatisticsView.jsx';
 
 const AdminPage = () => {
     const [activeTab, setActiveTab] = useState('users');
@@ -93,19 +95,13 @@ const AdminPage = () => {
 
                     {activeTab === 'users' && (
                         <div className="fade-in">
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>User Dashboard</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>
-                                Here the admin will see and manage users, approve seller profiles, ban users and monitor platform activity.
-                            </p>
+                            <AdminUserDashboard />
                         </div>
                     )}
 
                     {activeTab === 'statistics' && (
                         <div className="fade-in">
-                            <h2 style={{ color: '#2c3e50', marginBottom: '1rem' }}>Platform Statistics</h2>
-                            <p style={{ color: '#555', fontSize: '1.05rem' }}>
-                                Global analytics, sales reports, and active user metrics will appear here.
-                            </p>
+                            <StatisticsView />
                         </div>
                     )}
                 </div>

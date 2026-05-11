@@ -157,6 +157,30 @@ public class UserProfileService {
     }
 
     @Transactional
+    public List<SellerProfileRespDTO> getSellers() {
+        return sellerProfileRepository.findAll().stream()
+                .map(seller -> {
+                    SellerProfileRespDTO dto = new SellerProfileRespDTO();
+                    dto.setUserId(seller.getUserId());
+                    dto.setShopName(seller.getShopName());
+                    dto.setShopSlug(seller.getShopSlug());
+                    dto.setDescription(seller.getDescription());
+                    dto.setLogoUrl(seller.getLogoUrl());
+                    dto.setAvgRating(seller.getAvgRating());
+                    dto.setTotalSales(seller.getTotalSales());
+                    dto.setVerified(seller.getVerified());
+                    dto.setCreatedAt(seller.getCreatedAt());
+                    dto.setUpdatedAt(seller.getUpdatedAt());
+                    dto.setAuthorizedCategories(
+                            seller.getAuthorizedCategories() != null
+                                    ? new HashSet<>(seller.getAuthorizedCategories())
+                                    : Collections.emptySet()
+                    );
+                    return dto;
+                }).collect(Collectors.toList());
+    }
+
+    @Transactional
     public List<SellerProfileRespDTO> getUnverifiedSellers() {
         return sellerProfileRepository.findByVerifiedFalse().stream()
                 .map(seller -> {
