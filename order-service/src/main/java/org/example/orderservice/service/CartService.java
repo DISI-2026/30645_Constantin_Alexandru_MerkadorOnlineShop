@@ -11,4 +11,5 @@ public interface CartService {
     CartDto updateItemInCart(String productId, Integer quantity);
     CartDto removeItemFromCart(String productId);
     void clearCart();
+    void clearCartForUser(UUID userId);
 }

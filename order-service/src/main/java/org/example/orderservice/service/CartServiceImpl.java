@@ -93,6 +93,12 @@ public class CartServiceImpl implements CartService {
         redisTemplate.delete(key);
     }
 
+    @Override
+    public void clearCartForUser(UUID userId) {
+        String key = CART_KEY_PREFIX + userId.toString();
+        redisTemplate.delete(key);
+    }
+
     private CartDto saveCart(String key, CartDto cart) {
         updateCartTotal(cart);
         redisTemplate.opsForValue().set(key, cart, CART_EXPIRATION_DAYS, TimeUnit.DAYS);

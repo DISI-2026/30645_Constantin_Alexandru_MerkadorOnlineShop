@@ -5,6 +5,7 @@ import org.example.orderservice.dto.*;
 import org.example.orderservice.dto.event.OrderPlacedEvent;
 import org.example.orderservice.dto.event.OrderStatusChangedEvent;
 import org.example.orderservice.dto.event.OrderStockReserveMessage;
+import org.example.orderservice.dto.event.SellerSalesMessage;
 import org.example.orderservice.infrastructure.entity.Order;
 import org.example.orderservice.infrastructure.entity.OrderLine;
 import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -81,6 +83,17 @@ public class OrderServiceImpl implements OrderService {
                 new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), savedOrder.getId())
             );
         }
+
+        Map<UUID, BigDecimal> salesPerSeller = orderLines.stream()
+                .filter(line -> line.getSellerId() != null)
+                .collect(Collectors.groupingBy(
+                        OrderLine::getSellerId,
+                        Collectors.reducing(BigDecimal.ZERO, OrderLine::getSubtotal, BigDecimal::add)
+                ));
+
+        salesPerSeller.forEach((sellerId, total) -> {
+            orderEventPublisher.sendSellerSalesUpdate(new SellerSalesMessage(sellerId, total.doubleValue()));
+        });
 
         return OrderMapper.toDto(savedOrder);
     }
@@ -165,12 +178,10 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
 
-        // Check if the user that requested the update is an admin or the seller of the order
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        // must be the seller of this order, not a different seller
         if (!isAdmin) {
             UUID currentUserId = getCurrentUserId();
             boolean isSellerForOrder = order.getOrderLines().stream()
@@ -205,6 +216,17 @@ public class OrderServiceImpl implements OrderService {
                     new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), order.getId())
                 );
             }
+
+            Map<UUID, BigDecimal> salesPerSeller = order.getOrderLines().stream()
+                    .filter(line -> line.getSellerId() != null)
+                    .collect(Collectors.groupingBy(
+                            OrderLine::getSellerId,
+                            Collectors.reducing(BigDecimal.ZERO, OrderLine::getSubtotal, BigDecimal::add)
+                    ));
+
+            salesPerSeller.forEach((sellerId, total) -> {
+                orderEventPublisher.sendSellerSalesUpdate(new SellerSalesMessage(sellerId, -total.doubleValue()));
+            });
         }
 
         return OrderMapper.toDto(updatedOrder);
