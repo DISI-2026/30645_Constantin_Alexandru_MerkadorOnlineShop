@@ -74,6 +74,12 @@ public class UserProfileController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/sellers")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SellerProfileRespDTO>> getSellers() {
+        return ResponseEntity.ok(userProfileService.getSellers());
+    }
+
     @GetMapping("/sellers/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<SellerProfileRespDTO>> getPendingSellers() {

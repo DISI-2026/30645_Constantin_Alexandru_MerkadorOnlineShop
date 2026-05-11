@@ -64,7 +64,7 @@ const MainNavbar = ({ pageTitle }) => {
                 {activeRole === 'BUYER' && (
                     <Link to="/cart" style={{ textDecoration: 'none' }}>
                         <button className="action-button" style={{
-                            backgroundColor: '#2196F3',
+                            backgroundColor: '#27ae60',
                             color: 'white',
                             border: 'none',
                             padding: '10px 15px',
@@ -85,7 +85,7 @@ const MainNavbar = ({ pageTitle }) => {
 
                 <Link to="/browse" style={{textDecoration: 'none'}}>
                     <button className="action-button" style={{
-                        backgroundColor: '#34db90',
+                        backgroundColor: '#34495e',
                         color: 'white',
                         border: 'none',
                         padding: '10px 20px',
@@ -98,7 +98,7 @@ const MainNavbar = ({ pageTitle }) => {
 
                 <Link to="/" style={{textDecoration: 'none'}}>
                     <button className="action-button" style={{
-                        backgroundColor: '#3498db',
+                        backgroundColor: '#34495e',
                         color: 'white',
                         border: 'none',
                         padding: '10px 20px',
