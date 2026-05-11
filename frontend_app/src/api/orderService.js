@@ -32,10 +32,10 @@ export const orderService = {
   // SELLER ONLY
   getOrdersForSeller: () => fetchWrapper(SELLER_ORDERS_BASE),
   
-  // A seller can also update an order's status using the regular endpoint, 
+  // A seller can also update an order's status using the seller endpoint,
   // since we added 'SELLER' role to the @PreAuthorize of updateOrderStatus in backend
   updateOrderStatusSeller: (orderId, status) =>
-    fetchWrapper(`${ORDERS_BASE}/${orderId}/status`, {
+    fetchWrapper(`${SELLER_ORDERS_BASE}/${orderId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),

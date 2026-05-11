@@ -62,9 +62,8 @@ public class NotificationController {
             @AuthenticationPrincipal String userId) {
 
         // Construct the message
-        String message = String.format("Shop '%s' (User ID: %s) requested verification for categories: %s. Message: '%s'",
+        String message = String.format("Shop '%s' requested verification for categories: %s. Message: '%s'",
                 request.getShopName(),
-                userId,
                 request.getCategories(),
                 request.getMessage());
 
