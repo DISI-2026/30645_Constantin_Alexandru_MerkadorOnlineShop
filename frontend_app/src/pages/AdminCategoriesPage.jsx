@@ -19,7 +19,6 @@ const AdminCategoriesPage = () => {
   const [form, setForm] = useState({
     name: '',
     slug: '',
-    description: '',
   });
 
   const getErrorMessage = (error, fallback) => {
@@ -90,7 +89,6 @@ const AdminCategoriesPage = () => {
       const payload = {
         name: form.name.trim(),
         slug: form.slug.trim() || generateSlugFromName(form.name),
-        description: form.description.trim(),
       };
 
       await categoryService.createCategory(payload);
@@ -98,7 +96,6 @@ const AdminCategoriesPage = () => {
       setForm({
         name: '',
         slug: '',
-        description: '',
       });
 
       await loadCategories();
@@ -180,16 +177,6 @@ const AdminCategoriesPage = () => {
               </div>
             </label>
 
-            <label>
-              Description
-              <textarea
-                name="description"
-                placeholder="Category description"
-                value={form.description}
-                onChange={handleChange}
-              />
-            </label>
-
             <button
               className="admin-category-submit"
               type="submit"
@@ -218,7 +205,6 @@ const AdminCategoriesPage = () => {
                 <article className="admin-category-card" key={category.id}>
                   <div>
                     <h3>{category.name || category.title}</h3>
-                    <p>{category.description || 'No description'}</p>
                     <span>{category.slug}</span>
                   </div>
 
