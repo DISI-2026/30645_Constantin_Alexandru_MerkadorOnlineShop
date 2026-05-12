@@ -131,6 +131,7 @@ services:
       - BROKER_HOST=${BROKER_HOST}
       - BROKER_PORT=${BROKER_PORT}
       - JWT_SECRET=${JWT_SECRET}
+      - DOMAIN_URL=${DOMAIN_URL}
     depends_on:
       rabbitmq:
           condition: service_healthy
@@ -143,7 +144,7 @@ services:
       - "traefik.enable=true"
 
       # --- Public routes (no JWT) ---
-      - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`) || PathPrefix(`/api/credentials/reactivate-account`)"
+      - "traefik.http.routers.credential-public.rule=PathPrefix(`/api/credentials/login`) || PathPrefix(`/api/credentials/add`) || PathPrefix(`/api/credentials/activate`) || PathPrefix(`/api/credentials/resend-code`) || PathPrefix(`/api/credentials/forgot-password`) || PathPrefix(`/api/credentials/reset-password`) || PathPrefix(`/api/credentials/reactivate-account`) || PathPrefix(`/api/credentials/refresh`)"
       - "traefik.http.routers.credential-public.service=credential"
       - "traefik.http.routers.credential-public.middlewares=strip-api, cors-frontend"
       - "traefik.http.routers.credential-public.entrypoints=web"
