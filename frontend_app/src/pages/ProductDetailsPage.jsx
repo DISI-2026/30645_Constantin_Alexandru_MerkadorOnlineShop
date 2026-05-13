@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { productService, getProductImageUrl } from '../api/productService';
 import { cartService } from '../api/cartService';
 import { postService } from '../api/postService';
+import { getSellerProfile, getPublicUserProfile } from '../api/userService';
 import { useAuth } from '../context/AuthContext';
 import BrowseNavbar from '../components/BrowseNavbar';
 import '../styles/ProductDetailsPage.css';
@@ -16,6 +17,8 @@ const ProductDetailsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [quantity, setQuantity] = useState(1);
+    const [seller, setSeller] = useState(null);
+    const [sellerLoading, setSellerLoading] = useState(false);
 
     // Reviews State
     const [reviews, setReviews] = useState([]);
@@ -45,6 +48,12 @@ const ProductDetailsPage = () => {
             }
             
             setProduct(productData);
+
+            // Load seller profile
+            if (productData.sellerId) {
+                loadSellerProfile(productData.sellerId);
+            }
+
             loadReviews();
 
         } catch (err) {
@@ -54,6 +63,50 @@ const ProductDetailsPage = () => {
             setLoading(false);
         }
     }, [id]);
+
+    const loadSellerProfile = async (sellerId) => {
+        try {
+            setSellerLoading(true);
+            try {
+                const sellerData = await getSellerProfile(sellerId);
+                console.log('Seller Profile Data:', sellerData);
+                const profileData = sellerData.data || sellerData;
+
+                if (profileData && profileData.shopName) {
+                    setSeller({
+                        storeName: profileData.shopName,
+                        logo: profileData.logoUrl,
+                        description: profileData.description || '',
+                        avgRating: profileData.avgRating,
+                        joinedDate: profileData.createdAt,
+                        totalProducts: profileData.totalProducts
+                    });
+                    return;
+                }
+            } catch (sellerErr) {
+                console.log("Seller profile not found, trying public profile:", sellerErr);
+            }
+
+            try {
+                const publicData = await getPublicUserProfile(sellerId);
+                console.log('Public Profile Data:', publicData);
+                const profileData = publicData.data || publicData;
+                setSeller({
+                    storeName: profileData.username || profileData.email || 'Unknown Store',
+                    logo: profileData.avatar,
+                    description: profileData.bio || ''
+                });
+            } catch (publicErr) {
+                console.error("Failed to load public profile:", publicErr);
+                setSeller(null);
+            }
+        } catch (err) {
+            console.error("Failed to load seller profile:", err);
+            setSeller(null);
+        } finally {
+            setSellerLoading(false);
+        }
+    };
 
     const loadReviews = async () => {
         try {
@@ -178,6 +231,33 @@ const ProductDetailsPage = () => {
                             <p>{product.description || 'No description provided by the seller.'}</p>
                         </div>
                         
+                        {/* SELLER INFORMATION SECTION */}
+                        {!sellerLoading && seller && (
+                            <div className="seller-info-box">
+                                <h3>Seller Information</h3>
+                                <div className="seller-card">
+                                    {seller.logo && (
+                                        <img src={seller.logo} alt={seller.storeName} className="seller-logo" />
+                                    )}
+                                    <div className="seller-details">
+                                        <h4 className="seller-name">{seller.storeName || 'Unknown Store'}</h4>
+                                        {seller.avgRating !== undefined && seller.avgRating !== null && (
+                                            <div className="seller-rating">
+                                                ★ {seller.avgRating.toFixed(1)} rating
+                                            </div>
+                                        )}
+                                        {seller.description && (
+                                            <p className="seller-description">{seller.description}</p>
+                                        )}
+                                        <div className="seller-stats">
+                                            {seller.joinedDate && (
+                                                <span className="stat">📅 Joined {new Date(seller.joinedDate).toLocaleDateString()}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {activeRole === 'BUYER' && (
                             <div className="product-add-to-cart-section">
                                 <div className="quantity-selector">
