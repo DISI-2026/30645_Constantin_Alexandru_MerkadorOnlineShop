@@ -289,11 +289,15 @@ const SellerPage = () => {
                                 <div className="seller-info-section">
                                     <div className="seller-info-header">
                                         <h2 className="seller-info-title">Shop Details</h2>
-                                        {!isEditing && !isNewProfile && (
-                                            <button className="seller-edit-btn" onClick={() => setIsEditing(true)}>
-                                                Edit Profile
-                                            </button>
-                                        )}
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            {!isEditing && !isNewProfile && (
+                                                <>
+                                                    <button className="seller-edit-btn" onClick={() => setIsEditing(true)}>
+                                                        Edit Profile
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {isEditing ? (

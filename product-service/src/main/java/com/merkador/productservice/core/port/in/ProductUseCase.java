@@ -26,20 +26,11 @@ public interface ProductUseCase {
 
     Product deactivateProduct(UUID id, UUID sellerId);
 
-    /**
-     * Called by Order Service via RabbitMQ: reserve stock atomically.
-     */
     void reserveStock(UUID productId, int quantity);
 
-    /**
-     * Called by Order Service via RabbitMQ: release reserved stock on cancellation.
-     */
     void releaseStock(UUID productId, int quantity);
 
-    /**
-     * Called by Review Service via RabbitMQ: update denormalized rating.
-     */
     void updateRating(UUID productId, BigDecimal newAvg, int reviewCount);
+    
+    void deleteAllProductsBySellerId(UUID sellerId);
 }
-
-

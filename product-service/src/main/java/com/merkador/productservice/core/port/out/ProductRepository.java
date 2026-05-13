@@ -22,6 +22,8 @@ public interface ProductRepository {
     boolean existsByIdAndSellerId(UUID id, UUID sellerId);
 
     void deleteById(UUID id);
+    
+    Double calculateAverageRatingForSeller(UUID sellerId);
+    
+    void deleteAllBySellerId(UUID sellerId);
 }
-
-

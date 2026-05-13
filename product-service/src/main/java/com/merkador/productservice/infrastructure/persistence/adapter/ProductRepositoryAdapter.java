@@ -79,6 +79,16 @@ public class ProductRepositoryAdapter implements ProductRepository {
                 .orElseThrow(() -> new ResourceNotFoundException("Product", id));
         jpa.delete(entity);
     }
+    
+    @Override
+    public Double calculateAverageRatingForSeller(UUID sellerId) {
+        return jpa.calculateAverageRatingForSeller(sellerId);
+    }
+
+    @Override
+    public void deleteAllBySellerId(UUID sellerId) {
+        jpa.deleteAllBySellerId(sellerId);
+    }
 
     private Sort buildSort(ProductFilter filter) {
         String sortBy = filter.getSortBy() != null ? filter.getSortBy() : "createdAt";
@@ -87,5 +97,3 @@ public class ProductRepositoryAdapter implements ProductRepository {
         return Sort.by(direction, sortBy);
     }
 }
-
-

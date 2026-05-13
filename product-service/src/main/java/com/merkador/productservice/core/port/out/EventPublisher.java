@@ -9,6 +9,6 @@ public interface EventPublisher {
     void publishProductDeleted(Object event);
 
     void publishStockUpdated(Object event);
+
+    void publishSellerRatingUpdated(Object event); // Added
 }
-
-

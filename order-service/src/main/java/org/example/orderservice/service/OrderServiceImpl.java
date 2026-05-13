@@ -12,6 +12,7 @@ import org.example.orderservice.infrastructure.entity.OrderStatusHistory;
 import org.example.orderservice.infrastructure.messaging.OrderEventPublisher;
 import org.example.orderservice.infrastructure.repository.OrderRepository;
 import org.example.orderservice.mapper.OrderMapper;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
@@ -174,7 +176,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SELLER') or hasRole('BUYER')")
     public OrderResponseDto updateOrderStatus(UUID orderId, String newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
@@ -185,11 +187,16 @@ public class OrderServiceImpl implements OrderService {
 
         if (!isAdmin) {
             UUID currentUserId = getCurrentUserId();
+
             boolean isSellerForOrder = order.getOrderLines().stream()
                     .anyMatch(line -> currentUserId.equals(line.getSellerId()));
 
+            boolean isBuyerForOrder = order.getCustomerId().equals(currentUserId);
+
             if (!isSellerForOrder) {
-                throw new AccessDeniedException("You are not authorized to update this order's status.");
+                if (!(isBuyerForOrder && "CANCELLED".equals(newStatus))) {
+                    throw new AccessDeniedException("You are not authorized to update this order's status.");
+                }
             }
         }
 
@@ -214,7 +221,7 @@ public class OrderServiceImpl implements OrderService {
         if ("CANCELLED".equals(newStatus)) {
             for (OrderLine line : order.getOrderLines()) {
                 orderEventPublisher.sendStockReleaseCommand(
-                    new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), order.getId())
+                        new OrderStockReserveMessage(UUID.fromString(line.getProductId()), line.getQuantity(), order.getId())
                 );
             }
 
@@ -242,9 +249,13 @@ public class OrderServiceImpl implements OrderService {
 
     public boolean isOrderOwner(Authentication authentication, UUID orderId) {
         UUID currentUserId = UUID.fromString(authentication.getName());
-        return orderRepository.findById(orderId)
-                .map(order -> order.getCustomerId().equals(currentUserId))
+        boolean isOwner = orderRepository.findById(orderId)
+                .map(order -> {
+                    boolean result = order.getCustomerId().equals(currentUserId);
+                    return result;
+                })
                 .orElse(false);
+        return isOwner;
     }
 
     public boolean isSellerOfOrder(Authentication authentication, UUID orderId) {

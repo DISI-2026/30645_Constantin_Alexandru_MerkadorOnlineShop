@@ -36,6 +36,7 @@ public interface PresentationMapper {
     @Mapping(target = "images", ignore = true)
     Product toDomain(UpdateProductRequest request);
 
+    @Mapping(target = "verified", ignore = true)
     ProductResponse toResponse(Product product);
 
     // ---- ProductImage ----
