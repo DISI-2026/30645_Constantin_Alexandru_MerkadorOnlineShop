@@ -19,7 +19,7 @@ public class RabbitMQConfig {
 
     // --- ORDER & PRODUCT ---
     public static final String ORDER_EXCHANGE = "order-exchange";
-    public static final String PRODUCT_EXCHANGE = "product-exchange";
+    public static final String PRODUCT_EXCHANGE = "product.exchange";
 
     public static final String SELLER_SALES_QUEUE = "seller-sales-queue";
     public static final String SELLER_RATING_QUEUE = "seller-rating-queue";

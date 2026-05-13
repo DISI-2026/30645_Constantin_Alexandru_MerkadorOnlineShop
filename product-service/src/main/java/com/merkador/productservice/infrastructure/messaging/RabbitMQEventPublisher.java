@@ -37,6 +37,11 @@ public class RabbitMQEventPublisher implements EventPublisher {
         publish("product.stock.updated", event);
     }
 
+    @Override
+    public void publishSellerRatingUpdated(Object event) {
+        publish("product.seller.rating", event); // Defined in user-ms expectations
+    }
+
     private void publish(String routingKey, Object event) {
         try {
             rabbitTemplate.convertAndSend(exchange, routingKey, event);
@@ -46,5 +51,3 @@ public class RabbitMQEventPublisher implements EventPublisher {
         }
     }
 }
-
-

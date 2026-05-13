@@ -13,6 +13,7 @@ import com.merkador.productservice.infrastructure.messaging.event.ProductCreated
 import com.merkador.productservice.infrastructure.messaging.event.ProductDeletedEvent;
 import com.merkador.productservice.infrastructure.messaging.event.ProductUpdatedEvent;
 import com.merkador.productservice.infrastructure.messaging.event.StockUpdatedEvent;
+import com.merkador.productservice.infrastructure.messaging.event.SellerRatingMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -176,6 +177,19 @@ public class ProductService implements ProductUseCase {
         product.updateRating(newAvg, reviewCount);
         productRepository.save(product);
         esOutboxRepository.enqueue(productId, "UPSERT");
+
+        Double overallAvg = productRepository.calculateAverageRatingForSeller(product.getSellerId());
+        if (overallAvg != null) {
+            eventPublisher.publishSellerRatingUpdated(new SellerRatingMessage(product.getSellerId(), overallAvg));
+            log.info("Sent rating update for seller {}: {}", product.getSellerId(), overallAvg);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllProductsBySellerId(UUID sellerId) {
+        productRepository.deleteAllBySellerId(sellerId);
+        log.info("Deleted all products for seller {}", sellerId);
     }
 
     // -------------------------------------------------------
@@ -191,5 +205,3 @@ public class ProductService implements ProductUseCase {
         return product;
     }
 }
-
-

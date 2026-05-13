@@ -33,9 +33,18 @@ public class RabbitMQConfig {
     @Value("${app.rabbitmq.routing-keys.order-release}")
     private String orderReleaseRoutingKey;
 
+    public static final String AUTH_EXCHANGE = "auth-exchange";
+    public static final String PRODUCT_USER_SYNC_QUEUE = "product.service.user.sync.queue";
+    public static final String USER_DELETED_ROUTING_KEY = "auth.user.deleted";
+
     @Bean
     public TopicExchange productExchange() {
         return new TopicExchange(productExchange, true, false);
+    }
+
+    @Bean
+    public TopicExchange authExchange() {
+        return new TopicExchange(AUTH_EXCHANGE);
     }
 
     @Bean
@@ -54,6 +63,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue productUserSyncQueue() {
+        return new Queue(PRODUCT_USER_SYNC_QUEUE, true);
+    }
+
+    @Bean
     public Binding esSyncBinding() {
         return BindingBuilder.bind(esSyncQueue()).to(productExchange()).with(esSyncRoutingKey);
     }
@@ -69,6 +83,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Binding bindProductUserSyncQueue() {
+        return BindingBuilder.bind(productUserSyncQueue()).to(authExchange()).with(USER_DELETED_ROUTING_KEY);
+    }
+
+    @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
@@ -80,5 +99,3 @@ public class RabbitMQConfig {
         return template;
     }
 }
-
-
