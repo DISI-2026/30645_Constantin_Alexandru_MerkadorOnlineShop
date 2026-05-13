@@ -1,5 +1,6 @@
 package com.merkador.productservice.core.usecase;
 
+import com.merkador.productservice.core.domain.Category;
 import com.merkador.productservice.core.domain.Product;
 import com.merkador.productservice.core.exception.BusinessException;
 import com.merkador.productservice.core.exception.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import com.merkador.productservice.core.port.out.CategoryRepository;
 import com.merkador.productservice.core.port.out.EsOutboxRepository;
 import com.merkador.productservice.core.port.out.EventPublisher;
 import com.merkador.productservice.core.port.out.ProductRepository;
+import com.merkador.productservice.core.port.out.SellerVerificationPort;
 import com.merkador.productservice.infrastructure.messaging.event.ProductCreatedEvent;
 import com.merkador.productservice.infrastructure.messaging.event.ProductDeletedEvent;
 import com.merkador.productservice.infrastructure.messaging.event.ProductUpdatedEvent;
@@ -32,12 +34,17 @@ public class ProductService implements ProductUseCase {
     private final CategoryRepository categoryRepository;
     private final EsOutboxRepository esOutboxRepository;
     private final EventPublisher eventPublisher;
+    private final SellerVerificationPort sellerVerificationPort;
 
     @Override
     @Transactional
     public Product createProduct(Product product) {
-        categoryRepository.findById(product.getCategoryId())
+        Category category = categoryRepository.findById(product.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category", product.getCategoryId()));
+
+        if (!sellerVerificationPort.isSellerVerifiedForCategory(product.getSellerId(), category.getSlug())) {
+            throw new BusinessException("Seller is not verified for this category.");
+        }
 
         if (productRepository.existsBySlug(product.getSlug())) {
             throw new BusinessException("Product slug already exists: " + product.getSlug());
@@ -61,8 +68,11 @@ public class ProductService implements ProductUseCase {
             throw new BusinessException("Product slug already exists: " + updated.getSlug());
         }
         if (!existing.getCategoryId().equals(updated.getCategoryId())) {
-            categoryRepository.findById(updated.getCategoryId())
+            Category newCategory = categoryRepository.findById(updated.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category", updated.getCategoryId()));
+            if (!sellerVerificationPort.isSellerVerifiedForCategory(sellerId, newCategory.getSlug())) {
+                throw new BusinessException("Seller is not verified for this category.");
+            }
         }
 
         existing.setTitle(updated.getTitle());

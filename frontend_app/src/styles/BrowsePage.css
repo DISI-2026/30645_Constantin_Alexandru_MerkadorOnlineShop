@@ -166,6 +166,16 @@
   white-space: nowrap;
 }
 
+.browse-product-verified {
+  background: #10b981;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
 .browse-product-description {
   margin: 12px 0;
   color: #6b7280;

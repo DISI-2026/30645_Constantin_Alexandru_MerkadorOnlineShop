@@ -5,6 +5,8 @@ import com.merkador.productservice.core.domain.ProductStatus;
 import com.merkador.productservice.core.port.in.ProductFilter;
 import com.merkador.productservice.core.port.in.ProductImageUseCase;
 import com.merkador.productservice.core.port.in.ProductUseCase;
+import com.merkador.productservice.core.port.out.CategoryRepository;
+import com.merkador.productservice.core.port.out.SellerVerificationPort;
 import com.merkador.productservice.infrastructure.security.AuthenticatedUser;
 import com.merkador.productservice.infrastructure.storage.LocalFileStorageService;
 import com.merkador.productservice.presentation.dto.request.CreateProductRequest;
@@ -35,7 +37,8 @@ public class ProductController {
 
     private final ProductUseCase productUseCase;
     private final PresentationMapper mapper;
-
+    private final SellerVerificationPort sellerVerificationPort;
+    private final CategoryRepository categoryRepository;
     private final ProductImageUseCase imageUseCase;
     private final LocalFileStorageService fileStorageService;
     // ================================================================
@@ -74,7 +77,12 @@ public class ProductController {
                 .build();
 
         Page<ProductResponse> resultPage = productUseCase.searchProducts(filter)
-                .map(mapper::toResponse);
+                .map(product -> {
+                    ProductResponse response = mapper.toResponse(product);
+                    String categorySlug = categoryRepository.findById(product.getCategoryId()).map(c -> c.getSlug()).orElse("");
+                    response.setVerified(sellerVerificationPort.isSellerVerifiedForCategory(product.getSellerId(), categorySlug));
+                    return response;
+                });
 
         return ResponseEntity.ok(ApiResponse.ok(PageResponse.from(resultPage)));
     }
@@ -84,7 +92,10 @@ public class ProductController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductResponse>> getById(@PathVariable UUID id) {
-        ProductResponse response = mapper.toResponse(productUseCase.getProductById(id));
+        Product product = productUseCase.getProductById(id);
+        ProductResponse response = mapper.toResponse(product);
+        String categorySlug = categoryRepository.findById(product.getCategoryId()).map(c -> c.getSlug()).orElse("");
+        response.setVerified(sellerVerificationPort.isSellerVerifiedForCategory(product.getSellerId(), categorySlug));
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -227,5 +238,3 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.ok(mapper.toResponse(updated)));
     }
 }
-
-

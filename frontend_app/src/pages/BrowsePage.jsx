@@ -339,6 +339,7 @@ const BrowsePage = () => {
                 <div className="browse-product-body">
                   <div className="browse-product-title-row">
                     <h3>{product.title}</h3>
+                    {product.verified && <span className="browse-product-verified">Verified</span>}
                     <span className="browse-product-price">
                       {product.price} {product.currency || 'RON'}
                     </span>

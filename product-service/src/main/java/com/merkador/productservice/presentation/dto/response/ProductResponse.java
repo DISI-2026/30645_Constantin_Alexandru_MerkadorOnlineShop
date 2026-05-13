@@ -26,6 +26,6 @@ public class ProductResponse {
     private int reviewCount;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
-    private List<ProductImageResponse> images;}
-
-
+    private List<ProductImageResponse> images;
+    private boolean verified;
+}
